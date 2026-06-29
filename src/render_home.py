@@ -158,3 +158,14 @@ def render_home():
 
 if __name__ == "__main__":
     render_home()
+
+
+import shutil
+
+assets_src = BASE_DIR / "assets"
+assets_dst = BASE_DIR / "output" / "assets"
+
+if assets_dst.exists():
+    shutil.rmtree(assets_dst)
+
+shutil.copytree(assets_src, assets_dst)
