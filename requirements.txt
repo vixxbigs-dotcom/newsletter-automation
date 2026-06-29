@@ -4,6 +4,6 @@ openpyxl
 jinja2
 beautifulsoup4
 requests
-pyyaml
+PyYAML
 python-dotenv
 openai
