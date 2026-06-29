@@ -9,7 +9,7 @@ TEMPLATE_PATH = BASE_DIR / "templates" / "email.html"
 OUTPUT_PATH = BASE_DIR / "output" / "newsletter_email.html"
 
 # GitHub Pages 주소로 바꾸기
-SITE_URL = "https://vixxbigs-doctom.github.io/newsletter-automation"
+SITE_URL = "https://vixxbigs-dotcom.github.io/newsletter-automation"
 
 
 def load_newsletters():
