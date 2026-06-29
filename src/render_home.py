@@ -17,12 +17,10 @@ def load_articles():
 
 
 def get_featured_article(articles):
-    featured = [article for article in articles if article.get("featured", False)]
+    if not articles:
+        return None
 
-    if featured:
-        return featured[0]
-
-    return articles[0] if articles else None
+    return articles[-1]
 
 
 def create_image_html(article):

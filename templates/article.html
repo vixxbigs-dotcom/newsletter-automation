@@ -1,0 +1,83 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+
+  <title>{{ title }}</title>
+
+  <link rel="stylesheet" href="../../assets/css/style.css" />
+</head>
+
+<body>
+  <header class="site-header">
+    <div class="header-logo-bg"></div>
+
+    <nav class="category-nav">
+      <a href="../index.html">홈</a>
+      <a href="#">AI/AX 교육</a>
+      <a href="#">신입사원 교육</a>
+      <a href="#">승격자 교육</a>
+      <a href="#">리더 교육</a>
+      <a href="#">조직활성화 교육</a>
+    </nav>
+  </header>
+
+  <main class="article-page">
+    <section class="article-head">
+      <div class="article-category">{{ category }}</div>
+      <h1>{{ title }}</h1>
+      <p class="article-summary">{{ summary }}</p>
+      <div class="article-meta">{{ date }} · {{ read_time }}</div>
+
+      <div class="article-hero">
+        <img src="{{ hero_image }}" alt="{{ title }}" />
+      </div>
+    </section>
+
+    <section class="article-section">
+      <h2>{{ insight_title }}</h2>
+      <p>{{ insight }}</p>
+
+      <ul class="key-point-list">
+        {{ key_points }}
+      </ul>
+    </section>
+
+    <section class="article-section">
+      <h2>🗞️ 함께 보면 좋은 기사</h2>
+
+      <div class="source-grid">
+        {{ source_articles }}
+      </div>
+    </section>
+
+    <section class="article-section">
+      <h2>💡 정리하면</h2>
+      <p>{{ conclusion }}</p>
+
+      <h3>우리 부서에서 활용한다면</h3>
+      <ul class="key-point-list">
+        {{ department_apply }}
+      </ul>
+
+      <div class="core-message">
+        <strong>핵심 포인트</strong>
+        <p>{{ core_message }}</p>
+      </div>
+    </section>
+
+    <section class="article-section">
+      <h2>🏷️ 관련 태그</h2>
+      <div class="tag-list">
+        {{ tags }}
+      </div>
+    </section>
+  </main>
+
+  <footer class="site-footer">
+    <strong>multicampus HRD Radar</strong>
+    <span>AI-curated HRD newsletter automation project</span>
+  </footer>
+</body>
+</html>
