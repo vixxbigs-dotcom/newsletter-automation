@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+
+  <title>HRD Radar</title>
+
+  <link rel="stylesheet" href="../assets/css/style.css" />
+</head>
+
+<body>
+  <header class="site-header">
+    <div class="header-logo-bg"></div>
+
+    <nav class="category-nav">
+      <a href="#">AI/AX 교육</a>
+      <a href="#">신입사원 교육</a>
+      <a href="#">승격자 교육</a>
+      <a href="#">리더 교육</a>
+      <a href="#">조직활성화 교육</a>
+    </nav>
+  </header>
+
+  <main class="page">
+    <section class="hero-section">
+      {{ featured_article }}
+    </section>
+
+    <section class="section-block">
+      <div class="section-title-row">
+        <h2>오늘의 추천 기사</h2>
+        <a href="#">전체보기</a>
+      </div>
+
+      <div class="article-grid four">
+        {{ recommended_articles }}
+      </div>
+    </section>
+
+    {{ category_sections }}
+
+    <section class="subscribe-box">
+      <div>
+        <h2>매일 하나씩 HRD 인사이트를 받아보세요</h2>
+        <p>AI가 선별한 HRD 기사와 우리 부서 적용 아이디어를 HTML 메일로 전송합니다.</p>
+      </div>
+
+      <form>
+        <input type="email" placeholder="이메일 주소 입력" />
+        <button type="button">구독하기</button>
+      </form>
+    </section>
+  </main>
+
+  <footer class="site-footer">
+    <strong>multicampus HRD Radar</strong>
+    <span>AI-curated HRD newsletter automation project</span>
+  </footer>
+</body>
+</html>

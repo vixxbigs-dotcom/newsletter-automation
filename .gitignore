@@ -1,0 +1,41 @@
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+.Python
+
+# Virtual environment
+.venv/
+venv/
+env/
+
+# Streamlit secrets
+.streamlit/secrets.toml
+
+# Environment variables
+.env
+.env.*
+
+# Local config / credentials
+config/email_config.yaml
+*.key
+*.pem
+
+# Output files
+output/
+assets/generated/
+
+# Data files not for Git
+data/news_db.xlsx
+data/raw/
+data/processed/
+
+# Backup
+backup_src_root/
+
+# OS / Editor
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/

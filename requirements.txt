@@ -1,0 +1,9 @@
+streamlit
+pandas
+openpyxl
+jinja2
+beautifulsoup4
+requests
+pyyaml
+python-dotenv
+openai

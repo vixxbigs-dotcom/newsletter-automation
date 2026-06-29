@@ -1,0 +1,102 @@
+[
+  {
+    "id": "ai-education-001",
+    "issue": "HRD Trend Newsletter 1호",
+    "category": "AI/AX 교육",
+    "section": "오늘의 메인 기사",
+    "title": "AI 교육, 이제 툴 사용법만 배우면 부족한 이유",
+    "subtitle": "기업 AI 교육은 단순한 사용법 강의에서 벗어나, 실제 업무 문제를 AI로 해결하는 실습형 AX 교육으로 바뀌고 있어요.",
+    "date": "2026.06.29",
+    "read_time": "3분 읽기",
+    "source": "HRD Radar",
+    "source_url": "https://example.com",
+    "thumbnail": "../assets/thumbnails/ai-education-001.png",
+    "banner": "../assets/banners/ai-education-001-banner.png",
+    "tags": ["AI 교육", "AX 교육", "업무 자동화", "실습형 교육"],
+    "score": 95,
+    "featured": true,
+    "published": true,
+    "body": [
+      {
+        "heading": "무슨 일이야?",
+        "content": "요즘 기업들은 앞다투어 AI 교육을 확대하고 있어요. 그런데 자세히 들여다보면 단순히 ChatGPT 사용법을 알려주는 교육에서 끝나지 않아요. 구성원이 직접 AI 에이전트를 만들고, 업무 자동화 아이디어를 내고, 실제 결과물을 만드는 방식으로 바뀌고 있습니다."
+      },
+      {
+        "heading": "왜 중요해?",
+        "content": "AI 도구는 계속 바뀝니다. 그래서 특정 기능을 외우는 교육만으로는 오래가기 어렵습니다. 중요한 것은 AI를 활용해 내 업무를 어떻게 바꿀 수 있는지 직접 경험해보는 것입니다."
+      },
+      {
+        "heading": "HRD 시사점",
+        "content": "앞으로의 AI 교육은 강의보다 실습 비중을 높이고, 직무별 실제 업무 시나리오를 반영해야 합니다. 교육 PM, 영업, 기획, 리더 등 대상별 과제를 다르게 설계해야 현업 적용도가 높아집니다."
+      },
+      {
+        "heading": "우리 부서 적용 아이디어",
+        "content": "뉴스레터 자동화 시스템에도 같은 방식을 적용할 수 있습니다. AI가 기사 적합성을 평가하고, 태그를 추출하고, 주제별로 분류한 뒤, HTML 메일과 웹 아티클로 자동 변환하는 구조를 만들 수 있습니다."
+      }
+    ],
+    "links": [
+      {
+        "title": "원문 기사 바로가기",
+        "url": "https://example.com"
+      }
+    ]
+  },
+  {
+    "id": "onboarding-001",
+    "issue": "HRD Trend Newsletter 1호",
+    "category": "신입사원 교육",
+    "section": "오늘의 추천 기사",
+    "title": "온보딩은 왜 다시 중요해졌을까?",
+    "subtitle": "신입사원의 조기 적응과 리텐션을 높이기 위해 온보딩 교육의 역할이 다시 커지고 있어요.",
+    "date": "2026.06.29",
+    "read_time": "3분 읽기",
+    "source": "HRD Radar",
+    "source_url": "https://example.com",
+    "thumbnail": "",
+    "banner": "",
+    "tags": ["온보딩", "신입사원", "조기적응"],
+    "score": 88,
+    "featured": false,
+    "published": true,
+    "body": [
+      {
+        "heading": "무슨 일이야?",
+        "content": "최근 기업들은 신입사원 교육을 단순한 회사 소개가 아니라 조직 적응과 관계 형성을 돕는 과정으로 다시 설계하고 있습니다."
+      },
+      {
+        "heading": "HRD 시사점",
+        "content": "온보딩 교육은 지식 전달보다 조직문화 이해, 역할 인식, 동료와의 연결감을 만드는 방향으로 구성해야 합니다."
+      }
+    ],
+    "links": []
+  },
+  {
+    "id": "leadership-001",
+    "issue": "HRD Trend Newsletter 1호",
+    "category": "리더 교육",
+    "section": "오늘의 추천 기사",
+    "title": "리더 교육의 핵심은 정답보다 판단력",
+    "subtitle": "AI 전환기 팀장에게는 지식보다 복잡한 상황에서 판단하고 조율하는 역량이 중요해지고 있어요.",
+    "date": "2026.06.29",
+    "read_time": "3분 읽기",
+    "source": "HRD Radar",
+    "source_url": "https://example.com",
+    "thumbnail": "",
+    "banner": "",
+    "tags": ["리더십", "팀장교육", "의사결정"],
+    "score": 90,
+    "featured": false,
+    "published": true,
+    "body": [
+      {
+        "heading": "무슨 일이야?",
+        "content": "리더 교육은 더 이상 리더십 이론을 배우는 데서 끝나지 않습니다. 실제 조직 이슈를 놓고 판단하고 대화하고 실행하는 훈련으로 바뀌고 있습니다."
+      },
+      {
+        "heading": "우리 부서 적용 아이디어",
+        "content": "팀장 교육 과정에는 실제 갈등 상황, 성과관리 이슈, 세대 차이 커뮤니케이션 사례를 넣어 판단력을 훈련하는 구성이 필요합니다."
+      }
+    ],
+    "links": []
+  }
+]
