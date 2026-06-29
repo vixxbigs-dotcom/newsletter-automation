@@ -4,84 +4,82 @@ from pathlib import Path
 
 BASE_DIR = Path(__file__).resolve().parent.parent
 
-DATA_PATH = BASE_DIR / "data" / "articles.json"
+DATA_PATH = BASE_DIR / "data" / "newsletters.json"
 TEMPLATE_PATH = BASE_DIR / "templates" / "home.html"
 OUTPUT_PATH = BASE_DIR / "output" / "index.html"
 
 
-def load_articles():
+def load_newsletters():
     with open(DATA_PATH, "r", encoding="utf-8") as f:
-        articles = json.load(f)
-
-    return [article for article in articles if article.get("published", False)]
+        return json.load(f)
 
 
-def get_featured_article(articles):
-    if not articles:
+def get_latest_newsletter(newsletters):
+    if not newsletters:
         return None
-
-    return articles[-1]
-
-
-def create_image_html(article):
-    thumbnail = article.get("thumbnail", "")
-
-    if thumbnail:
-        return f'<img src="{thumbnail}" alt="{article["title"]}" />'
-
-    return '<div class="placeholder-thumb">📰</div>'
+    return newsletters[-1]
 
 
-def create_article_card(article):
+def create_article_card(newsletter):
+    thumbnail = newsletter.get("hero_image", "")
+    article_url = f"articles/{newsletter['id']}.html"
+
+    image_html = (
+        f'<img src="{thumbnail}" alt="{newsletter["title"]}" />'
+        if thumbnail
+        else '<div class="placeholder-thumb">📰</div>'
+    )
+
     return f"""
-        <article class="article-card" onclick="location.href='articles/{article["id"]}.html'">
-          {create_image_html(article)}
-          <div class="article-category">{article.get("category", "")}</div>
-          <h3>{article.get("title", "")}</h3>
-          <p>{article.get("subtitle", "")}</p>
-          <div class="article-date">{article.get("date", "")}</div>
+        <article class="article-card" onclick="location.href='{article_url}'">
+          {image_html}
+          <div class="article-category">{newsletter.get("category", "")}</div>
+          <h3>{newsletter.get("title", "")}</h3>
+          <p>{newsletter.get("summary", "")}</p>
+          <div class="article-date">{newsletter.get("date", "")}</div>
         </article>
     """
 
 
-def create_featured_html(article):
-    if not article:
+def create_featured_html(newsletter):
+    if not newsletter:
         return ""
 
-    banner = article.get("banner") or article.get("thumbnail") or ""
+    article_url = f"articles/{newsletter['id']}.html"
+    hero_image = newsletter.get("hero_image", "")
 
     image_html = (
-        f'<img src="{banner}" alt="{article["title"]}" />'
-        if banner
+        f'<img src="{hero_image}" alt="{newsletter["title"]}" />'
+        if hero_image
         else '<div class="placeholder-thumb">📰</div>'
     )
 
     return f"""
       <div class="hero-copy">
         <div class="eyebrow">TODAY'S HRD INSIGHT</div>
-        <h1>{article.get("title", "")}</h1>
-        <p>{article.get("subtitle", "")}</p>
+        <h1>{newsletter.get("title", "")}</h1>
+        <p>{newsletter.get("summary", "")}</p>
         <div class="hero-meta">
-          {article.get("category", "")} · {article.get("date", "")} · {article.get("read_time", "")}
+          {newsletter.get("category", "")} · {newsletter.get("date", "")} · {newsletter.get("read_time", "")}
         </div>
       </div>
 
-      <div class="hero-image" onclick="location.href='articles/{article["id"]}.html'">
+      <div class="hero-image" onclick="location.href='{article_url}'">
         {image_html}
       </div>
     """
 
 
-def create_category_section(category_name, articles):
-    category_articles = [
-        article for article in articles
-        if article.get("category") == category_name
+def create_category_section(category_name, newsletters):
+    category_items = [
+        item for item in newsletters
+        if item.get("category") == category_name
     ]
 
-    if not category_articles:
+    if not category_items:
         return ""
 
-    cards_html = "\n".join(create_article_card(article) for article in category_articles[:3])
+    cards_html = "\n".join(create_article_card(item) for item in category_items[:3])
 
     return f"""
     <section class="section-block">
@@ -98,19 +96,17 @@ def create_category_section(category_name, articles):
 
 
 def render_home():
-    articles = load_articles()
-    featured_article = get_featured_article(articles)
+    newsletters = load_newsletters()
+    latest = get_latest_newsletter(newsletters)
 
-    featured_html = create_featured_html(featured_article)
+    featured_html = create_featured_html(latest)
 
-    recommended_articles = [
-        article for article in articles
-        if article.get("id") != featured_article.get("id")
+    recommended = [
+        item for item in reversed(newsletters)
+        if latest and item.get("id") != latest.get("id")
     ][:4]
 
-    recommended_html = "\n".join(
-        create_article_card(article) for article in recommended_articles
-    )
+    recommended_html = "\n".join(create_article_card(item) for item in recommended)
 
     categories = [
         "AI/AX 교육",
@@ -121,7 +117,7 @@ def render_home():
     ]
 
     category_sections_html = "\n".join(
-        create_category_section(category, articles)
+        create_category_section(category, newsletters)
         for category in categories
     )
 
