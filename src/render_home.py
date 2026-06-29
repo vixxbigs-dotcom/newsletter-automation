@@ -17,11 +17,30 @@ def load_newsletters():
 def get_latest_newsletter(newsletters):
     if not newsletters:
         return None
+
     return newsletters[-1]
 
 
+def home_asset_path(path):
+    """
+    home html은 output/index.html에 생성됨.
+    따라서 assets 경로는 assets/... 로 접근해야 함.
+    """
+    if not path:
+        return ""
+
+    if path.startswith("http"):
+        return path
+
+    path = path.replace("\\", "/")
+    path = path.replace("../../assets/", "assets/")
+    path = path.replace("../assets/", "assets/")
+
+    return path
+
+
 def create_article_card(newsletter):
-    thumbnail = newsletter.get("hero_image", "")
+    thumbnail = home_asset_path(newsletter.get("hero_image", ""))
     article_url = f"articles/{newsletter['id']}.html"
 
     image_html = (
@@ -46,7 +65,7 @@ def create_featured_html(newsletter):
         return ""
 
     article_url = f"articles/{newsletter['id']}.html"
-    hero_image = newsletter.get("hero_image", "")
+    hero_image = home_asset_path(newsletter.get("hero_image", ""))
 
     image_html = (
         f'<img src="{hero_image}" alt="{newsletter["title"]}" />'

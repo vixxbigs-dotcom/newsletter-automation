@@ -22,9 +22,6 @@ config/email_config.yaml
 *.key
 *.pem
 
-# Output files
-output/
-assets/generated/
 
 # Data files not for Git
 data/news_db.xlsx

@@ -14,6 +14,31 @@ def load_newsletters():
         return json.load(f)
 
 
+def article_asset_path(path):
+    """
+    article html은 output/articles/ 안에 생성됨.
+    따라서 assets 경로는 ../assets/... 로 접근해야 함.
+    """
+    if not path:
+        return ""
+
+    if path.startswith("http"):
+        return path
+
+    path = path.replace("\\", "/")
+
+    if path.startswith("../assets/"):
+        return path
+
+    if path.startswith("../../assets/"):
+        return path.replace("../../assets/", "../assets/")
+
+    if path.startswith("assets/"):
+        return f"../{path}"
+
+    return path
+
+
 def render_list_items(items):
     return "\n".join(f"<li>{item}</li>" for item in items)
 
@@ -26,10 +51,12 @@ def render_source_articles(source_articles):
     html = ""
 
     for article in source_articles:
+        thumbnail = article_asset_path(article.get("thumbnail", ""))
+
         html += f"""
         <a class="source-card" href="{article.get("url", "#")}" target="_blank" rel="noopener noreferrer">
           <div class="source-thumb">
-            <img src="{article.get("thumbnail", "")}" alt="{article.get("title", "")}" />
+            <img src="{thumbnail}" alt="{article.get("title", "")}" />
           </div>
           <h3>{article.get("title", "")}</h3>
           <p>{article.get("summary", "")}</p>
@@ -47,7 +74,7 @@ def render_one_newsletter(newsletter, template):
     html = html.replace("{{ summary }}", newsletter.get("summary", ""))
     html = html.replace("{{ date }}", newsletter.get("date", ""))
     html = html.replace("{{ read_time }}", newsletter.get("read_time", ""))
-    html = html.replace("{{ hero_image }}", newsletter.get("hero_image", ""))
+    html = html.replace("{{ hero_image }}", article_asset_path(newsletter.get("hero_image", "")))
     html = html.replace("{{ insight_title }}", newsletter.get("insight_title", ""))
     html = html.replace("{{ insight }}", newsletter.get("insight", ""))
     html = html.replace("{{ key_points }}", render_list_items(newsletter.get("key_points", [])))
