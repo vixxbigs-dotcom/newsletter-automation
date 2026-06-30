@@ -5,11 +5,10 @@ AI가 HRD 뉴스를 선별하고, 요약하고, HTML 뉴스레터를 생성하�
 
 ✨ Preview
 <img width="1350" height="1647" alt="_C__Users_MULTICAMPUS_Downloads_github-pages_artifact_index html" src="https://github.com/user-attachments/assets/788f527e-32ff-4e4d-8c63-01041762a033" />
+
 📷 Home Preview
-<img width="1350" height="3404" alt="_C__Users_MULTICAMPUS_Downloads_github-pages_artifact_articles_onboarding-001 html" src="https://github.com/user-attachments/assets/76326720-679a-4592-bb33-1599f4b820a5" />
-📷 Article Preview
-<img width="723" height="2871" alt="_C__Users_MULTICAMPUS_Downloads_github-pages_artifact_newsletter_email html" src="https://github.com/user-attachments/assets/a54bcde0-a7aa-49bf-8f8b-fb31772457b9" />
-📷 Email Preview
+<img width="1350" height="3404" alt="_C__Users_MULTICAMPUS_Downloads_github-pages_artifact_articles_onboarding-001 html" src="https://github.com/user-attachments/assets/76326720-679a-4592-bb33-1599f4b820a5" /> 📷 Article Preview <img width="723" height="2871" alt="_C__Users_MULTICAMPUS_Downloads_github-pages_artifact_newsletter_email html" src="https://github.com/user-attachments/assets/a54bcde0-a7aa-49bf-8f8b-fb31772457b9" /> 📷 Email Preview
+
 
 🚀 프로젝트 소개
 
