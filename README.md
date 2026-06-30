@@ -4,19 +4,13 @@ AI 기반 HRD 뉴스레터 자동화 시스템
 AI가 HRD 뉴스를 선별하고, 요약하고, HTML 뉴스레터를 생성하여 웹과 이메일로 배포하는 자동화 프로젝트
 
 ✨ Preview
-
-(여기에 홈페이지 스크린샷)
-
+<img width="1350" height="1647" alt="_C__Users_MULTICAMPUS_Downloads_github-pages_artifact_index html" src="https://github.com/user-attachments/assets/788f527e-32ff-4e4d-8c63-01041762a033" />
 📷 Home Preview
-
-(기사 페이지)
-
+<img width="1350" height="3404" alt="_C__Users_MULTICAMPUS_Downloads_github-pages_artifact_articles_onboarding-001 html" src="https://github.com/user-attachments/assets/76326720-679a-4592-bb33-1599f4b820a5" />
 📷 Article Preview
-
-(메일)
-<img width="958" height="694" alt="image" src="https://github.com/user-attachments/assets/e88a6786-f635-46be-b55e-4f263d46178b" />
-
+<img width="723" height="2871" alt="_C__Users_MULTICAMPUS_Downloads_github-pages_artifact_newsletter_email html" src="https://github.com/user-attachments/assets/a54bcde0-a7aa-49bf-8f8b-fb31772457b9" />
 📷 Email Preview
+
 🚀 프로젝트 소개
 
 기존 HRD 뉴스레터는
@@ -34,7 +28,7 @@ HRD Radar는 이 과정을 AI와 Python으로 자동화하여
 "하루 1개의 HRD 뉴스레터를 자동 생성"
 
 하는 것을 목표로 합니다.
-
+<img width="958" height="694" alt="image" src="https://github.com/user-attachments/assets/e88a6786-f635-46be-b55e-4f263d46178b" />
 ⚙️ Workflow
 📰 뉴스 크롤링
         │
