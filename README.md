@@ -1,4 +1,6 @@
-📰 HRD Radar
+## 🌍 Live Demo
+🔗 https://vixxbigs-dotcom.github.io/newsletter-automation/📰 HRD Radar
+
 AI 기반 HRD 뉴스레터 자동화 시스템
 
 AI가 HRD 뉴스를 선별하고, 요약하고, HTML 뉴스레터를 생성하여 웹과 이메일로 배포하는 자동화 프로젝트
