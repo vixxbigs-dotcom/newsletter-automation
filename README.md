@@ -1,5 +1,5 @@
 ## 🌍 Live Demo
-🔗 https://vixxbigs-dotcom.github.io/newsletter-automation/📰 HRD Radar
+🔗 https://vixxbigs-dotcom.github.io/newsletter-automation/  📰 HRD Radar
 
 AI 기반 HRD 뉴스레터 자동화 시스템
 
