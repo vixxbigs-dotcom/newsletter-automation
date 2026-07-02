@@ -1,5 +1,6 @@
 import json
 import re
+from collections import Counter
 from datetime import datetime
 from pathlib import Path
 from urllib.parse import urljoin
@@ -18,12 +19,70 @@ HEADERS = {
 }
 
 
+STOPWORDS = {
+    "그리고", "그러나", "하지만", "또한", "있는", "없는", "통해", "위해", "대한", "관련",
+    "이번", "지난", "최근", "이런", "저런", "하는", "했다", "한다", "있다", "된다",
+    "뉴스", "기사", "사진", "출처", "홈", "메일전송", "공유하기", "스크랩하기",
+    "페이스북", "트위터", "네이버", "블로그", "프린트하기", "글자확대", "글자축소",
+    "login", "join", "update", "home"
+}
+
+
 def clean_text(text):
     if not text:
         return ""
 
     text = re.sub(r"\s+", " ", text)
     return text.strip()
+
+
+def make_short_summary(text, max_len=180):
+    text = clean_text(text)
+
+    remove_patterns = [
+        "Login Join",
+        "사람이 희망!",
+        "인적자원을 디자인 하라!",
+        "페이스북 공유하기",
+        "트위터 공유하기",
+        "스크랩하기",
+        "프린트하기",
+        "이메일보내기",
+        "글자확대",
+        "글자축소",
+    ]
+
+    for pattern in remove_patterns:
+        text = text.replace(pattern, " ")
+
+    text = clean_text(text)
+
+    if len(text) <= max_len:
+        return text
+
+    return text[:max_len].rstrip() + "..."
+
+
+def extract_keywords(texts, top_n=4):
+    merged = " ".join(texts)
+    words = re.findall(r"[가-힣A-Za-z0-9]{2,}", merged)
+
+    cleaned = []
+    for word in words:
+        word = word.strip().lower()
+
+        if word in STOPWORDS:
+            continue
+
+        if len(word) < 2:
+            continue
+
+        cleaned.append(word)
+
+    counter = Counter(cleaned)
+    keywords = [word for word, _ in counter.most_common(top_n)]
+
+    return keywords or ["HRD", "교육", "온보딩"]
 
 
 def fetch_article(url):
@@ -67,17 +126,13 @@ def fetch_article(url):
     body = max(body_candidates, key=len) if body_candidates else ""
     body = clean_text(body)
 
-    if len(body) > 700:
-        preview = body[:700] + "..."
-    else:
-        preview = body
-
     return {
         "title": title,
         "url": url,
         "thumbnail": "",
         "image_url": image_url,
-        "summary": preview
+        "summary": make_short_summary(body),
+        "raw_text": body
     }
 
 
@@ -115,14 +170,19 @@ def create_newsletter():
         raise ValueError("data/source_urls.json에 urls가 없습니다.")
 
     source_articles = []
+    raw_texts = []
 
     for url in urls:
         try:
             article = fetch_article(url)
+            raw_texts.append(article.get("raw_text", ""))
+            article.pop("raw_text", None)
             source_articles.append(article)
             print(f"기사 수집 완료: {article['title']}")
         except Exception as e:
             print(f"기사 수집 실패: {url} / {e}")
+
+    keyword_tags = extract_keywords(raw_texts, top_n=4)
 
     new_newsletter = {
         "id": newsletter_id,
@@ -130,23 +190,23 @@ def create_newsletter():
         "category": source_data.get("category", "신입사원 교육"),
         "title": source_data.get("title", "뉴스레터 제목을 입력하세요"),
         "date": source_data.get("date", datetime.now().strftime("%Y.%m.%d")),
-        "read_time": source_data.get("read_time", "4분 읽기"),
+        "read_time": source_data.get("read_time", "5분 뉴스"),
         "hero_image": source_data.get("hero_image", "assets/banners/onboarding-001-banner.png"),
         "summary": source_data.get(
             "summary",
             "기사 4개를 바탕으로 작성할 뉴스레터 한 줄 요약을 입력하세요."
         ),
-        "insight_title": source_data.get("insight_title", "🔎 통합되는 인사이트"),
+        "insight_title": source_data.get("insight_title", "🔎 HRD 인사이트"),
         "insight": source_data.get(
             "insight",
-            "수집된 기사들을 바탕으로 통합 인사이트를 입력하세요."
+            "수집된 기사들을 바탕으로 HRD 인사이트를 입력하세요."
         ),
         "key_points": source_data.get(
             "key_points",
             [
-                "🤖 핵심 변화 포인트를 입력하세요.",
-                "🤝 HRD 관점의 시사점을 입력하세요.",
-                "🏢 우리 부서 적용 관점을 입력하세요."
+                "🤖 주요 기사에서 반복적으로 등장하는 변화 흐름을 정리해보세요.",
+                "🤝 교육 대상자에게 필요한 경험과 역량을 연결해보세요.",
+                "🏢 현업 적용 가능성이 높은 교육 설계 포인트를 도출해보세요."
             ]
         ),
         "source_articles": source_articles,
@@ -157,19 +217,12 @@ def create_newsletter():
         "department_apply": source_data.get(
             "department_apply",
             [
-                "적용 아이디어 1",
-                "적용 아이디어 2",
-                "적용 아이디어 3"
+                "교육 기획 포인트 1",
+                "교육 기획 포인트 2",
+                "교육 기획 포인트 3"
             ]
         ),
-        "core_message": source_data.get(
-            "core_message",
-            "핵심 메시지를 입력하세요."
-        ),
-        "tags": source_data.get(
-            "tags",
-            ["HRD트렌드", "뉴스레터", "교육기획"]
-        )
+        "tags": source_data.get("tags", keyword_tags)
     }
 
     newsletters = [

@@ -1,9 +1,15 @@
 {
   "newsletter_id": "onboarding-001",
+  "issue": "HRD Trend Newsletter 1호",
+  "category": "AI/AX 교육",
+  "title": "신입사원 교육, 이제 ‘적응’만으로는 부족해요 👀",
+  "date": "2026.06.29",
+  "read_time": "5분 뉴스",
+  "summary": "요즘 온보딩은 회사 소개를 넘어 AI 활용력·협업 경험·현장 적응력까지 함께 키우는 방향으로 바뀌고 있어요.",
   "urls": [
     "https://www.khrd.co.kr/news/view.php?idx=5057093&sm=w_total&stx=%EC%98%A8%EB%B3%B4%EB%94%A9&stx2=&w_section1=&sdate=&edate=",
     "https://www.khrd.co.kr/news/view.php?idx=5057102&sm=w_total&stx=%EC%8B%A0%EC%9E%85%EC%82%AC%EC%9B%90&stx2=&w_section1=&sdate=&edate=",
     "https://www.khrd.co.kr/news/view.php?idx=5057101&sm=w_total&stx=%EC%8B%A0%EC%9E%85%EC%82%AC%EC%9B%90&stx2=&w_section1=&sdate=&edate=",
-    "https://www.khrd.co.kr/news/view.php?idx=5056772&sm=w_total&stx=%EC%98%A8%EB%B3%B4%EB%94%A9&stx2=&w_section1=&sdate=&edate="
+    "https://www.khrd.co.kr/news/view.php?idx=5056276&sm=w_total&stx=%EB%84%A4%EC%9D%B4%EB%B2%84&stx2=&w_section1=&sdate=&edate="
   ]
 }

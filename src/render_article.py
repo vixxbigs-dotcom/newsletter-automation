@@ -81,7 +81,6 @@ def render_one_newsletter(newsletter, template):
     html = html.replace("{{ source_articles }}", render_source_articles(newsletter.get("source_articles", [])))
     html = html.replace("{{ conclusion }}", newsletter.get("conclusion", ""))
     html = html.replace("{{ department_apply }}", render_list_items(newsletter.get("department_apply", [])))
-    html = html.replace("{{ core_message }}", newsletter.get("core_message", ""))
     html = html.replace("{{ tags }}", render_tags(newsletter.get("tags", [])))
 
     return html

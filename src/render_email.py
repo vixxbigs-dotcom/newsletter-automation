@@ -8,7 +8,6 @@ DATA_PATH = BASE_DIR / "data" / "newsletters.json"
 TEMPLATE_PATH = BASE_DIR / "templates" / "email.html"
 OUTPUT_PATH = BASE_DIR / "output" / "newsletter_email.html"
 
-# GitHub Pages 주소로 바꾸기
 SITE_URL = "https://vixxbigs-dotcom.github.io/newsletter-automation"
 
 
@@ -48,6 +47,24 @@ def render_bullet_items(items):
         <div style="margin:8px 0; padding:13px 15px; background:#fff7ef; border:1px solid #ffe0c2; border-radius:10px; font-size:15px; line-height:1.6; color:#222222;">
           {item}
         </div>
+        """
+
+    return html
+
+
+def render_tags(tags):
+    html = ""
+
+    for tag in tags:
+        clean_tag = str(tag).replace("#", "").strip()
+
+        if not clean_tag:
+            continue
+
+        html += f"""
+        <span style="display:inline-block; margin:6px 8px 0 0; padding:8px 14px; background:#fff7ef; border:1px solid #ffe0c2; border-radius:999px; color:#ff7300; font-size:14px; font-weight:bold; line-height:1.2;">
+          #{clean_tag}
+        </span>
         """
 
     return html
@@ -114,8 +131,7 @@ def render_email():
     html = html.replace("{{ source_articles }}", render_source_articles(newsletter.get("source_articles", [])))
     html = html.replace("{{ conclusion }}", newsletter.get("conclusion", ""))
     html = html.replace("{{ department_apply }}", render_bullet_items(newsletter.get("department_apply", [])))
-    html = html.replace("{{ core_message }}", newsletter.get("core_message", ""))
-    html = html.replace("{{ tags }}", " ".join([f"#{tag}" for tag in newsletter.get("tags", [])]))
+    html = html.replace("{{ tags }}", render_tags(newsletter.get("tags", [])))
 
     OUTPUT_PATH.parent.mkdir(parents=True, exist_ok=True)
 
