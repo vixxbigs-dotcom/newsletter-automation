@@ -207,10 +207,26 @@ GitHub Pages
 
 "매일 5분 안에 HRD 뉴스레터를 발행할 수 있는 자동화 시스템 구축"
 
-⭐ GitHub README를 더 돋보이게 하는 팁
 
-스크린샷을 3장만 넣어도 완성도가 크게 올라갑니다.
 
-🏠 Home 화면
-📄 기사 페이지
-📧 이메일 화면
+# 🚀 Quick Start
+
+```bash
+# 관리자 실행
+streamlit run app.py --server.port 8502
+
+# 뉴스레터 생성
+python build.py
+
+# 로컬 확인
+start output/index.html
+start output/newsletter_email.html
+
+# Gmail 테스트
+python src/send_email.py
+
+# GitHub 배포
+git add .
+git commit -m "Update newsletter"
+git push
+```

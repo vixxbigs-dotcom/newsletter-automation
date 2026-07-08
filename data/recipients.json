@@ -1,0 +1,20 @@
+[
+  {
+    "name": "내 Gmail",
+    "email": "sesangi607@gmail.com",
+    "group": "테스트",
+    "send": false
+  },
+  {
+    "name": "내 멀티캠퍼스",
+    "email": "kaeun.ahn@multicampus.com",
+    "group": "콘텐츠팀",
+    "send": true
+  },
+  {
+    "name": "은주 프로님",
+    "email": "eunju214.nam@multicampus.com",
+    "group": "",
+    "send": true
+  }
+]
