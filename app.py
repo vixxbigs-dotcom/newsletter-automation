@@ -4,7 +4,8 @@ import json
 import os
 import subprocess
 import sys
-
+from src.article_parser import fetch_articles
+from src.create_newsletter_with_gemini import create_newsletter
 import pandas as pd
 import streamlit as st
 
@@ -17,7 +18,7 @@ from src.send_email import send_email
 
 
 # =========================================================
-# 기본 경로 및 URL
+# 기본 설정
 # =========================================================
 
 BASE_DIR = Path(__file__).resolve().parent
@@ -36,14 +37,44 @@ RECIPIENTS_PATH = BASE_DIR / "data" / "recipients.json"
 NEWS_DB_PATH = BASE_DIR / "data" / "news_db.xlsx"
 
 
-DEFAULT_URLS = """https://www.khrd.co.kr/news/view.php?idx=5057093&sm=w_total&stx=%EC%98%A8%EB%B3%B4%EB%94%A9&stx2=&w_section1=&sdate=&edate=
-https://www.khrd.co.kr/news/view.php?idx=5057102&sm=w_total&stx=%EC%8B%A0%EC%9E%85%EC%82%AC%EC%9B%90&stx2=&w_section1=&sdate=&edate=
-https://www.khrd.co.kr/news/view.php?idx=5057101&sm=w_total&stx=%EC%8B%A0%EC%9E%85%EC%82%AC%EC%9B%90&stx2=&w_section1=&sdate=&edate=
-https://www.khrd.co.kr/news/view.php?idx=5056772&sm=w_total&stx=%EC%98%A8%EB%B3%B4%EB%94%A9&stx2=&w_section1=&sdate=&edate="""
+CATEGORIES = [
+    "AI/AX 교육",
+    "신입사원 교육",
+    "승격자 교육",
+    "리더 교육",
+    "조직활성화 교육",
+    "기타",
+]
+
+CATEGORY_PREFIXES = {
+    "AI/AX 교육": "ai-ax",
+    "신입사원 교육": "onboarding",
+    "승격자 교육": "promotion",
+    "리더 교육": "leadership",
+    "조직활성화 교육": "culture",
+    "기타": "etc",
+}
+
+AGE_OPTIONS = {
+    "이번 달": 0,
+    "최근 1개월": 1,
+    "최근 3개월": 3,
+    "최근 6개월": 6,
+    "최근 12개월": 12,
+    "최근 24개월": 24,
+    "최근 36개월": 36,
+    "기간 제한 없음": None,
+}
+
+
+DEFAULT_URLS = """https://www.khrd.co.kr/news/view.php?idx=5057093
+https://www.khrd.co.kr/news/view.php?idx=5057102
+https://www.khrd.co.kr/news/view.php?idx=5057101
+https://www.khrd.co.kr/news/view.php?idx=5056772"""
 
 
 # =========================================================
-# Streamlit 기본 설정
+# Streamlit 설정
 # =========================================================
 
 st.set_page_config(
@@ -70,14 +101,101 @@ if "newsletter_urls_text" not in st.session_state:
 def read_file(path: Path):
     if path.exists():
         return path.read_text(encoding="utf-8")
+
     return None
 
 
-def save_source_urls(data):
-    SOURCE_URLS_PATH.parent.mkdir(parents=True, exist_ok=True)
+def load_json_file(path: Path, default):
+    if not path.exists():
+        return default
 
-    with open(SOURCE_URLS_PATH, "w", encoding="utf-8") as file:
-        json.dump(data, file, ensure_ascii=False, indent=2)
+    try:
+        return json.loads(path.read_text(encoding="utf-8"))
+    except (json.JSONDecodeError, OSError):
+        return default
+
+
+def save_source_urls(data):
+    SOURCE_URLS_PATH.parent.mkdir(
+        parents=True,
+        exist_ok=True,
+    )
+
+    SOURCE_URLS_PATH.write_text(
+        json.dumps(
+            data,
+            ensure_ascii=False,
+            indent=2,
+        ),
+        encoding="utf-8",
+    )
+
+
+def get_next_newsletter_id(category):
+    prefix = CATEGORY_PREFIXES.get(
+        category,
+        "etc",
+    )
+
+    newsletters = load_json_file(
+        NEWSLETTERS_PATH,
+        [],
+    )
+
+    max_number = 0
+
+    for newsletter in newsletters:
+        newsletter_id = str(
+            newsletter.get("id", "")
+        )
+
+        if not newsletter_id.startswith(f"{prefix}-"):
+            continue
+
+        suffix = newsletter_id.replace(
+            f"{prefix}-",
+            "",
+            1,
+        )
+
+        if suffix.isdigit():
+            max_number = max(
+                max_number,
+                int(suffix),
+            )
+
+    return f"{prefix}-{max_number + 1:03d}"
+
+
+def save_generated_newsletter(newsletter):
+    """생성된 뉴스레터를 data/newsletters.json에 저장합니다."""
+    NEWSLETTERS_PATH.parent.mkdir(parents=True, exist_ok=True)
+    newsletters = load_json_file(NEWSLETTERS_PATH, [])
+    if not isinstance(newsletters, list):
+        newsletters = []
+
+    clean_newsletter = {
+        key: value
+        for key, value in newsletter.items()
+        if not str(key).startswith("_")
+    }
+
+    newsletter_id = str(clean_newsletter.get("id", "")).strip()
+    replaced = False
+
+    for index, existing in enumerate(newsletters):
+        if str(existing.get("id", "")).strip() == newsletter_id:
+            newsletters[index] = clean_newsletter
+            replaced = True
+            break
+
+    if not replaced:
+        newsletters.append(clean_newsletter)
+
+    NEWSLETTERS_PATH.write_text(
+        json.dumps(newsletters, ensure_ascii=False, indent=2),
+        encoding="utf-8",
+    )
 
 
 # =========================================================
@@ -91,7 +209,7 @@ def load_news_db():
     return pd.DataFrame()
 
 
-def ensure_news_db_columns(df: pd.DataFrame):
+def ensure_news_db_columns(df):
     required_columns = [
         "뉴스레터 반영 여부",
         "수집일",
@@ -127,30 +245,33 @@ def ensure_news_db_columns(df: pd.DataFrame):
     return df[required_columns]
 
 
-def filter_news_db(df: pd.DataFrame):
+def filter_news_db(df):
     filtered_df = df.copy()
 
-    with st.expander("🔎 필터 열기/닫기", expanded=False):
+    with st.expander(
+        "🔎 필터 열기/닫기",
+        expanded=False,
+    ):
         column1, column2, column3 = st.columns(3)
 
         with column1:
             keyword_filter = st.text_input(
                 "키워드 검색",
-                value="",
                 key="news_db_keyword_filter",
             )
 
         with column2:
             topic_options = ["전체"]
 
-            if "뉴스레터 주제" in df.columns:
-                topics = [
-                    str(value)
-                    for value in df["뉴스레터 주제"].dropna().unique()
-                    if str(value).strip()
-                ]
+            topics = [
+                str(value)
+                for value in df["뉴스레터 주제"]
+                .dropna()
+                .unique()
+                if str(value).strip()
+            ]
 
-                topic_options += sorted(set(topics))
+            topic_options += sorted(set(topics))
 
             selected_topic = st.selectbox(
                 "뉴스레터 주제",
@@ -173,15 +294,15 @@ def filter_news_db(df: pd.DataFrame):
             "URL",
         ]
 
-        available_columns = [
-            column
-            for column in searchable_columns
-            if column in filtered_df.columns
-        ]
+        mask = pd.Series(
+            False,
+            index=filtered_df.index,
+        )
 
-        mask = pd.Series(False, index=filtered_df.index)
+        for column in searchable_columns:
+            if column not in filtered_df.columns:
+                continue
 
-        for column in available_columns:
             mask = mask | (
                 filtered_df[column]
                 .fillna("")
@@ -195,10 +316,7 @@ def filter_news_db(df: pd.DataFrame):
 
         filtered_df = filtered_df[mask]
 
-    if (
-        selected_topic != "전체"
-        and "뉴스레터 주제" in filtered_df.columns
-    ):
+    if selected_topic != "전체":
         filtered_df = filtered_df[
             filtered_df["뉴스레터 주제"]
             .fillna("")
@@ -206,10 +324,7 @@ def filter_news_db(df: pd.DataFrame):
             == selected_topic
         ]
 
-    if (
-        reflect_filter != "전체"
-        and "뉴스레터 반영 여부" in filtered_df.columns
-    ):
+    if reflect_filter != "전체":
         boolean_series = (
             filtered_df["뉴스레터 반영 여부"]
             .fillna(False)
@@ -224,10 +339,7 @@ def filter_news_db(df: pd.DataFrame):
     return filtered_df
 
 
-def apply_filtered_edits(
-    original_df: pd.DataFrame,
-    edited_df: pd.DataFrame,
-):
+def apply_filtered_edits(original_df, edited_df):
     if "_row_id" not in edited_df.columns:
         return original_df
 
@@ -255,19 +367,14 @@ def apply_filtered_edits(
 
 
 # =========================================================
-# 수신자 관리 함수
+# 수신자 함수
 # =========================================================
 
 def load_recipients_df():
-    if RECIPIENTS_PATH.exists():
-        try:
-            data = json.loads(
-                RECIPIENTS_PATH.read_text(encoding="utf-8")
-            )
-        except json.JSONDecodeError:
-            data = []
-    else:
-        data = []
+    data = load_json_file(
+        RECIPIENTS_PATH,
+        [],
+    )
 
     if not isinstance(data, list):
         data = []
@@ -302,12 +409,16 @@ def load_recipients_df():
             ]
         )
 
-    df["send"] = df["send"].fillna(False).astype(bool)
+    df["send"] = (
+        df["send"]
+        .fillna(False)
+        .astype(bool)
+    )
 
     return df
 
 
-def save_recipients_df(df: pd.DataFrame):
+def save_recipients_df(df):
     clean_df = df.copy()
 
     for column in ["name", "email", "group"]:
@@ -329,11 +440,6 @@ def save_recipients_df(df: pd.DataFrame):
         | (clean_df["name"] != "")
         | (clean_df["group"] != "")
     ]
-
-    RECIPIENTS_PATH.parent.mkdir(
-        parents=True,
-        exist_ok=True,
-    )
 
     RECIPIENTS_PATH.write_text(
         json.dumps(
@@ -380,15 +486,14 @@ def normalize_email_list(text):
 
 
 # =========================================================
-# 명령어 및 빌드 함수
+# 빌드 및 Git 함수
 # =========================================================
 
 def run_command(command, timeout=180):
-    env = os.environ.copy()
+    environment = os.environ.copy()
 
-    # 인증 요청 창으로 프로세스가 멈추는 것을 방지
-    env["GIT_TERMINAL_PROMPT"] = "0"
-    env["PYTHONIOENCODING"] = "utf-8"
+    environment["GIT_TERMINAL_PROMPT"] = "0"
+    environment["PYTHONIOENCODING"] = "utf-8"
 
     result = subprocess.run(
         command,
@@ -398,26 +503,23 @@ def run_command(command, timeout=180):
         encoding="utf-8",
         errors="replace",
         timeout=timeout,
-        env=env,
+        env=environment,
     )
 
-    output_parts = []
-
-    if result.stdout and result.stdout.strip():
-        output_parts.append(result.stdout.strip())
-
-    if result.stderr and result.stderr.strip():
-        output_parts.append(result.stderr.strip())
-
-    output = "\n".join(output_parts)
+    output = "\n".join(
+        part.strip()
+        for part in [
+            result.stdout,
+            result.stderr,
+        ]
+        if part and part.strip()
+    )
 
     if result.returncode != 0:
-        command_text = " ".join(str(item) for item in command)
-
         raise RuntimeError(
-            "명령 실행에 실패했습니다.\n\n"
-            f"명령어: {command_text}\n\n"
-            f"{output or '상세 오류 메시지가 없습니다.'}"
+            f"명령 실행 실패\n\n"
+            f"명령어: {' '.join(map(str, command))}\n\n"
+            f"{output}"
         )
 
     return output
@@ -430,124 +532,75 @@ def build_all():
     )
 
 
-def get_current_branch():
+def deploy_to_github(commit_message):
+    logs = []
+
+    logs.append("===== 전체 빌드 =====")
+    logs.append(build_all())
+
     branch = run_command(
         ["git", "branch", "--show-current"],
         timeout=30,
     ).strip()
 
-    if not branch:
-        raise RuntimeError(
-            "현재 Git 브랜치를 확인하지 못했습니다."
-        )
-
-    return branch
-
-
-def get_git_changes():
-    return run_command(
+    changes = run_command(
         ["git", "status", "--porcelain"],
         timeout=30,
     ).strip()
 
-
-def deploy_to_github(commit_message):
-    logs = []
-
-    logs.append("===== 1. 전체 빌드 =====")
-
-    build_log = build_all()
-
-    if build_log:
-        logs.append(build_log)
-    else:
-        logs.append("전체 빌드 완료")
-
-    branch = get_current_branch()
-
-    logs.append("")
-    logs.append(f"현재 브랜치: {branch}")
-
-    changes = get_git_changes()
-
     if not changes:
-        logs.append("")
-        logs.append("Git에 반영할 변경사항이 없습니다.")
-
+        logs.append("변경사항이 없습니다.")
         return "\n".join(logs), False
 
-    logs.append("")
-    logs.append("===== 2. 변경 파일 =====")
+    logs.append("===== 변경 파일 =====")
     logs.append(changes)
 
-    logs.append("")
-    logs.append("===== 3. Git add =====")
-
-    add_log = run_command(
+    run_command(
         ["git", "add", "."],
         timeout=60,
     )
 
-    logs.append(add_log or "git add 완료")
-
-    staged_changes = run_command(
+    staged = run_command(
         ["git", "diff", "--cached", "--name-status"],
         timeout=30,
     ).strip()
 
-    if not staged_changes:
-        logs.append("")
-        logs.append(
-            "스테이징된 변경사항이 없어 커밋하지 않았습니다."
-        )
-
+    if not staged:
+        logs.append("커밋할 파일이 없습니다.")
         return "\n".join(logs), False
 
-    logs.append("")
-    logs.append("===== 4. 커밋 대상 =====")
-    logs.append(staged_changes)
+    logs.append("===== 커밋 파일 =====")
+    logs.append(staged)
 
-    logs.append("")
-    logs.append("===== 5. Git commit =====")
-
-    commit_log = run_command(
-        [
-            "git",
-            "commit",
-            "-m",
-            commit_message,
-        ],
-        timeout=60,
-    )
-
-    logs.append(commit_log)
-
-    logs.append("")
-    logs.append(f"===== 6. Git push origin {branch} =====")
-
-    push_log = run_command(
-        [
-            "git",
-            "push",
-            "origin",
-            branch,
-        ],
-        timeout=180,
-    )
-
-    logs.append(push_log)
-
-    logs.append("")
     logs.append(
-        "GitHub push 완료. "
-        "이후 GitHub Actions에서 Pages 배포가 진행됩니다."
+        run_command(
+            [
+                "git",
+                "commit",
+                "-m",
+                commit_message,
+            ],
+            timeout=60,
+        )
+    )
+
+    logs.append(
+        run_command(
+            [
+                "git",
+                "push",
+                "origin",
+                branch,
+            ],
+            timeout=180,
+        )
     )
 
     return "\n".join(logs), True
 
 
 # =========================================================
-# 탭 구성
+# 탭
 # =========================================================
 
 (
@@ -610,8 +663,7 @@ with tab_article:
         )
 
         article_url = (
-            f"{SITE_URL}/articles/"
-            f"{selected_article.name}"
+            f"{SITE_URL}/articles/{selected_article.name}"
         )
 
         st.link_button(
@@ -626,15 +678,8 @@ with tab_article:
             scrolling=True,
         )
 
-        st.caption(
-            "새로 생성한 기사가 404라면 아직 GitHub Pages에 "
-            "배포되지 않은 상태입니다."
-        )
-
     else:
-        st.warning(
-            "아직 생성된 기사 HTML이 없습니다."
-        )
+        st.warning("생성된 기사 HTML이 없습니다.")
 
 
 # =========================================================
@@ -655,17 +700,14 @@ with tab_email:
 
         with open(EMAIL_PATH, "rb") as file:
             st.download_button(
-                label="⬇️ 메일 HTML 다운로드",
+                "⬇️ 메일 HTML 다운로드",
                 data=file,
                 file_name="newsletter_email.html",
                 mime="text/html",
                 use_container_width=True,
             )
-
     else:
-        st.warning(
-            "아직 output/newsletter_email.html 파일이 없습니다."
-        )
+        st.warning("메일 HTML이 없습니다.")
 
     st.divider()
     st.subheader("수신자 표 관리")
@@ -677,22 +719,16 @@ with tab_email:
         num_rows="dynamic",
         use_container_width=True,
         column_config={
-            "name": st.column_config.TextColumn(
-                "이름",
-            ),
-            "email": st.column_config.TextColumn(
-                "이메일",
-            ),
-            "group": st.column_config.TextColumn(
-                "그룹",
-            ),
+            "name": st.column_config.TextColumn("이름"),
+            "email": st.column_config.TextColumn("이메일"),
+            "group": st.column_config.TextColumn("그룹"),
             "send": st.column_config.CheckboxColumn(
                 "발송대상",
                 default=False,
             ),
         },
         hide_index=True,
-        key="recipient_data_editor",
+        key="recipient_editor",
     )
 
     if st.button(
@@ -700,40 +736,22 @@ with tab_email:
         use_container_width=True,
     ):
         save_recipients_df(edited_recipients_df)
-
-        st.success(
-            "수신자 표 저장 완료"
-        )
-
+        st.success("수신자 표 저장 완료")
         st.rerun()
 
     st.divider()
     st.subheader("Gmail 발송")
 
     selected_emails = get_selected_recipient_emails()
-    selected_email_text = ", ".join(selected_emails)
-
-    st.info(
-        f"현재 발송대상 체크 수신자: "
-        f"{len(selected_emails)}명"
-    )
 
     receiver_email = st.text_area(
         "받는 사람(To)",
-        value=selected_email_text,
-        placeholder=(
-            "수신자 표에서 발송대상을 체크한 이메일이 "
-            "자동 입력됩니다. 직접 입력도 가능합니다."
-        ),
+        value=", ".join(selected_emails),
         height=90,
     )
 
     cc_email = st.text_input(
         "참조(CC)",
-        value="",
-        placeholder=(
-            "선택 입력. 여러 명은 쉼표 또는 줄바꿈으로 구분하세요."
-        ),
     )
 
     subject = st.text_input(
@@ -742,54 +760,28 @@ with tab_email:
     )
 
     if st.button(
-        "📤 Gmail 테스트 발송",
+        "📤 Gmail 발송",
         use_container_width=True,
     ):
-        to_list = normalize_email_list(
-            receiver_email
-        )
-
-        cc_list = normalize_email_list(
-            cc_email
-        )
+        to_list = normalize_email_list(receiver_email)
+        cc_list = normalize_email_list(cc_email)
 
         if not to_list:
-            st.warning(
-                "받는 사람 이메일을 입력하거나 "
-                "수신자 표에서 발송대상을 체크해주세요."
-            )
-
-        elif not EMAIL_PATH.exists():
-            st.warning(
-                "메일 HTML이 없습니다. "
-                "먼저 뉴스레터 생성 탭에서 메일 HTML을 생성해주세요."
-            )
-
+            st.warning("받는 사람을 입력해주세요.")
         else:
             try:
-                with st.spinner(
-                    "메일을 발송하고 있습니다..."
-                ):
-                    send_email(
-                        receiver_email=", ".join(to_list),
-                        subject=subject.strip()
-                        or "HRD Radar 뉴스레터",
-                        cc_email=", ".join(cc_list),
-                    )
+                send_email(
+                    receiver_email=", ".join(to_list),
+                    subject=subject,
+                    cc_email=", ".join(cc_list),
+                )
 
                 st.success(
                     f"메일 발송 완료: {len(to_list)}명"
                 )
 
             except Exception as error:
-                st.error(
-                    f"메일 발송 실패: {error}"
-                )
-
-                st.info(
-                    "회사망에서는 Gmail SMTP가 차단될 수 있습니다. "
-                    "실패하면 휴대폰 핫스팟으로 다시 시도하세요."
-                )
+                st.error(f"메일 발송 실패: {error}")
 
 
 # =========================================================
@@ -803,9 +795,10 @@ with tab_db:
         column1, column2, column3 = st.columns(3)
 
         with column1:
-            collect_topic = st.text_input(
+            collect_topic = st.selectbox(
                 "뉴스레터 주제",
-                value="신입사원 교육",
+                CATEGORIES,
+                key="collect_topic",
             )
 
             collect_keyword = st.text_input(
@@ -816,18 +809,20 @@ with tab_db:
         with column2:
             collect_issue = st.text_input(
                 "발행호수",
-                value="HRD Trend Newsletter 1호",
+                value="HRD Trend Newsletter",
             )
 
-            collect_section = st.text_input(
-                "섹션 구분",
-                value="뉴스",
+            selected_age_label = st.selectbox(
+                "수집 기간",
+                list(AGE_OPTIONS.keys()),
+                index=4,
             )
 
         with column3:
-            collect_source = st.selectbox(
+            st.text_input(
                 "출처",
-                ["월간HRD"],
+                value="월간HRD",
+                disabled=True,
             )
 
             collect_count = st.number_input(
@@ -844,26 +839,24 @@ with tab_db:
 
         if collect_submitted:
             try:
-                with st.spinner(
-                    "뉴스 기사를 수집하고 있습니다..."
-                ):
-                    collected_df = collect_news_to_db(
-                        newsletter_topic=collect_topic,
-                        keyword=collect_keyword,
-                        issue=collect_issue,
-                        section=collect_section,
-                        source=collect_source,
-                        max_count=int(collect_count),
-                    )
+                result_df, new_count = collect_news_to_db(
+                    newsletter_topic=collect_topic,
+                    keyword=collect_keyword,
+                    issue=collect_issue,
+                    source="월간HRD",
+                    max_count=int(collect_count),
+                    max_age_months=AGE_OPTIONS[
+                        selected_age_label
+                    ],
+                )
 
                 st.success(
-                    f"뉴스 수집 완료: 총 {len(collected_df)}건 저장"
+                    f"신규 기사 {new_count}건 수집 완료 · "
+                    f"DB 전체 {len(result_df)}건"
                 )
 
             except Exception as error:
-                st.error(
-                    f"뉴스 수집 실패: {error}"
-                )
+                st.error(f"뉴스 수집 실패: {error}")
 
     st.divider()
     st.subheader("뉴스 DB 미리보기")
@@ -871,28 +864,18 @@ with tab_db:
     news_df = load_news_db()
 
     if news_df.empty:
-        st.info(
-            "아직 news_db.xlsx에 수집된 기사가 없습니다."
-        )
+        st.info("수집된 기사가 없습니다.")
 
     else:
-        news_df = ensure_news_db_columns(
-            news_df
-        )
-
-        news_df = news_df.reset_index(
-            drop=True
-        )
-
+        news_df = ensure_news_db_columns(news_df)
+        news_df = news_df.reset_index(drop=True)
         news_df["_row_id"] = news_df.index
 
-        filtered_df = filter_news_db(
-            news_df
-        )
+        filtered_df = filter_news_db(news_df)
 
         st.caption(
             f"전체 {len(news_df)}건 중 "
-            f"현재 {len(filtered_df)}건 표시"
+            f"{len(filtered_df)}건 표시"
         )
 
         edited_news_df = st.data_editor(
@@ -912,13 +895,11 @@ with tab_db:
                         max_value=100,
                     ),
                 "URL":
-                    st.column_config.LinkColumn(
-                        "URL",
-                    ),
+                    st.column_config.LinkColumn("URL"),
                 "_row_id": None,
             },
             hide_index=True,
-            key="news_db_data_editor",
+            key="news_db_editor",
         )
 
         if st.button(
@@ -940,15 +921,12 @@ with tab_db:
                 index=False,
             )
 
-            st.success(
-                "news_db.xlsx 저장 완료"
-            )
-
+            st.success("뉴스 DB 저장 완료")
             st.rerun()
 
         with open(NEWS_DB_PATH, "rb") as file:
             st.download_button(
-                label="⬇️ news_db.xlsx 다운로드",
+                "⬇️ news_db.xlsx 다운로드",
                 data=file,
                 file_name="news_db.xlsx",
                 mime=(
@@ -960,44 +938,50 @@ with tab_db:
 
 
 # =========================================================
-# 뉴스레터 생성 및 GitHub 배포
+# 뉴스레터 생성
 # =========================================================
 
 with tab_create:
     st.subheader("뉴스레터 기본 정보 입력")
 
+    selected_category = st.selectbox(
+        "카테고리",
+        CATEGORIES,
+        key="newsletter_category",
+    )
+
+    automatic_newsletter_id = get_next_newsletter_id(
+        selected_category
+    )
+
+    st.text_input(
+        "뉴스레터 ID",
+        value=automatic_newsletter_id,
+        disabled=True,
+        help=(
+            "선택한 카테고리와 기존 발행 번호를 기준으로 "
+            "자동 생성됩니다."
+        ),
+    )
+
     with st.form("source_url_form"):
         column1, column2 = st.columns(2)
 
         with column1:
-            newsletter_id = st.text_input(
-                "뉴스레터 ID",
-                value="onboarding-001",
-            )
-
-            category = st.selectbox(
-                "카테고리",
-                [
-                    "AI/AX 교육",
-                    "신입사원 교육",
-                    "승격자 교육",
-                    "리더 교육",
-                    "조직활성화 교육",
-                ],
-            )
-
             title = st.text_input(
                 "뉴스레터 제목",
-                value=(
-                    "신입사원 교육, 이제 ‘적응’만으로는 "
-                    "부족해요 👀"
-                ),
+                value="새 뉴스레터 제목",
+            )
+
+            summary = st.text_area(
+                "한 줄 요약",
+                height=100,
             )
 
         with column2:
             issue = st.text_input(
                 "발행호수",
-                value="HRD Trend Newsletter 1호",
+                value="HRD Trend Newsletter",
             )
 
             publish_date = st.text_input(
@@ -1005,20 +989,11 @@ with tab_create:
                 value=datetime.now().strftime("%Y.%m.%d"),
             )
 
-            read_time = st.text_input(
+            st.text_input(
                 "읽는 시간",
-                value="4분 읽기",
+                value="5분 뉴스",
+                disabled=True,
             )
-
-        summary = st.text_area(
-            "한 줄 요약",
-            value=(
-                "요즘 온보딩은 회사 소개를 넘어 "
-                "AI 활용력·협업 경험·현장 적응력까지 "
-                "함께 키우는 방향으로 바뀌고 있어요."
-            ),
-            height=80,
-        )
 
         urls_text = st.text_area(
             "기사 URL 4개 입력",
@@ -1038,180 +1013,260 @@ with tab_create:
                 if line.strip()
             ]
 
-            if not newsletter_id.strip():
-                st.warning(
-                    "뉴스레터 ID를 입력해주세요."
-                )
-
-            elif not title.strip():
-                st.warning(
-                    "뉴스레터 제목을 입력해주세요."
-                )
-
-            elif not urls:
-                st.warning(
-                    "기사 URL을 1개 이상 입력해주세요."
-                )
-
+            if not urls:
+                st.warning("기사 URL을 입력해주세요.")
             else:
-                source_data = {
-                    "newsletter_id":
-                        newsletter_id.strip(),
-                    "issue":
-                        issue.strip(),
-                    "category":
-                        category,
-                    "title":
-                        title.strip(),
-                    "date":
-                        publish_date.strip(),
-                    "read_time":
-                        read_time.strip(),
-                    "summary":
-                        summary.strip(),
-                    "urls":
-                        urls,
-                }
-
                 save_source_urls(
-                    source_data
+                    {
+                        "newsletter_id": automatic_newsletter_id,
+                        "issue": issue.strip(),
+                        "category": selected_category,
+                        "title": title.strip(),
+                        "date": publish_date.strip(),
+                        "read_time": "5분 뉴스",
+                        "summary": summary.strip(),
+                        "urls": urls,
+                    }
                 )
-
+                st.session_state["gemini_preview_articles"] = []
+                st.session_state["gemini_preview_failures"] = []
                 st.success(
-                    "data/source_urls.json 저장 완료"
+                    f"{automatic_newsletter_id} 기본 정보 저장 완료"
                 )
 
     st.divider()
-    st.subheader("생성 관리")
+    st.subheader("기사 작성 및 생성")
+    st.markdown("### 🔍 기사 원문 확인")
 
-    column1, column2, column3, column4, column5 = st.columns(5)
+    if st.button(
+        "🔍 입력한 URL 기사 원문 불러오기",
+        use_container_width=True,
+    ):
+        source_data = load_json_file(SOURCE_URLS_PATH, {})
+        source_urls = source_data.get("urls", [])
 
-    with column1:
-        if st.button(
-            "🖼 썸네일 추출",
-            use_container_width=True,
-        ):
+        if not source_urls:
+            st.warning("먼저 URL 및 기본 정보를 저장해주세요.")
+        else:
             try:
                 with st.spinner(
-                    "썸네일을 추출하고 있습니다..."
+                    "기사 제목과 본문을 불러오고 있습니다..."
                 ):
-                    update_newsletters()
+                    preview_articles, preview_failures = fetch_articles(
+                        source_urls
+                    )
 
+                st.session_state["gemini_preview_articles"] = preview_articles
+                st.session_state["gemini_preview_failures"] = preview_failures
                 st.success(
-                    "썸네일 추출 완료"
+                    f"기사 {len(preview_articles)}개를 불러왔습니다."
                 )
-
             except Exception as error:
-                st.error(
-                    f"썸네일 추출 실패: {error}"
+                st.error(f"기사 원문 수집 실패: {error}")
+
+    preview_articles = st.session_state.get(
+        "gemini_preview_articles",
+        [],
+    )
+    preview_failures = st.session_state.get(
+        "gemini_preview_failures",
+        [],
+    )
+
+    if preview_failures:
+        st.error("일부 기사 본문 수집에 실패했습니다.")
+        for failure in preview_failures:
+            st.write(f"- {failure['url']}: {failure['error']}")
+
+    if preview_articles:
+        for index, article in enumerate(preview_articles, start=1):
+            with st.expander(
+                f"기사 {index}. {article['title']}",
+                expanded=False,
+            ):
+                st.write(
+                    f"**발행일:** "
+                    f"{article.get('published_at') or '확인 불가'}"
+                )
+                st.write(f"**URL:** {article['url']}")
+                st.write(article["preview"])
+
+    article_confirmed = st.checkbox(
+        "기사 제목과 본문 수집 결과를 확인했습니다.",
+        value=False,
+        disabled=not bool(preview_articles),
+    )
+
+    if st.button(
+        "✨ Gemini API로 기사 작성하기",
+        type="primary",
+        use_container_width=True,
+        disabled=(
+            not article_confirmed
+            or not bool(preview_articles)
+        ),
+    ):
+        try:
+            source_data = load_json_file(SOURCE_URLS_PATH, {})
+            article_urls = [
+                article["url"]
+                for article in preview_articles
+                if article.get("url")
+            ]
+
+            if not article_urls:
+                raise ValueError(
+                    "뉴스레터로 작성할 기사 URL이 없습니다. "
+                    "먼저 기사 원문을 불러와 확인해주세요."
                 )
 
-    with column2:
-        if st.button(
-            "📄 기사 HTML",
-            use_container_width=True,
-        ):
-            try:
+            category = (
+                str(source_data.get("category", selected_category)).strip()
+                or "HRD 트렌드"
+            )
+            newsletter_id = (
+                str(
+                    source_data.get(
+                        "newsletter_id",
+                        automatic_newsletter_id,
+                    )
+                ).strip()
+                or automatic_newsletter_id
+            )
+
+            with st.spinner(
+                "Editor 분석 → Writer 작성 → Reviewer 검수를 "
+                "진행하고 있습니다..."
+            ):
+                generated_newsletter = create_newsletter(
+                    urls=article_urls,
+                    category=category,
+                    newsletter_id=newsletter_id,
+                    save=False,
+                )
+                save_generated_newsletter(generated_newsletter)
+
+            st.session_state["generated_newsletter"] = (
+                generated_newsletter
+            )
+            st.success(
+                f"{generated_newsletter['id']} "
+                "뉴스레터 초안 작성 및 저장 완료"
+            )
+
+        except Exception as error:
+            st.error(f"Gemini 기사 작성 실패: {error}")
+            st.exception(error)
+
+    generated_newsletter = st.session_state.get(
+        "generated_newsletter"
+    )
+
+    if generated_newsletter:
+        st.markdown("### ✨ 생성 결과")
+
+        review_score = generated_newsletter.get("_review_score")
+        if review_score is not None:
+            st.info(f"Reviewer 검수 점수: {review_score}점")
+
+        st.write(
+            f"**제목:** {generated_newsletter.get('title', '')}"
+        )
+        st.write(
+            f"**한 줄 요약:** "
+            f"{generated_newsletter.get('summary', '')}"
+        )
+        st.write(
+            f"**HRD 인사이트:** "
+            f"{generated_newsletter.get('insight', '')}"
+        )
+
+        st.write("**교육 기획할 때 활용할 포인트**")
+        for point in generated_newsletter.get("department_apply", []):
+            st.write(f"- {point}")
+
+        tags = generated_newsletter.get("tags", [])
+        if tags:
+            st.write("**키워드:** " + ", ".join(tags))
+
+        hero_image = generated_newsletter.get("hero_image")
+        if hero_image:
+            st.write("**대표 썸네일:** 첫 번째 기사 이미지")
+            st.image(hero_image, use_container_width=True)
+
+        st.info(
+            "생성 결과는 data/newsletters.json에 저장됐습니다. "
+            "아래 전체 빌드를 누르면 로컬 HTML에 반영됩니다."
+        )
+
+    if st.button(
+        "🚀 전체 빌드",
+        type="primary",
+        use_container_width=True,
+    ):
+        try:
+            with st.spinner(
+                "뉴스레터 HTML을 생성하고 있습니다..."
+            ):
+                build_log = build_all()
+
+            st.success("전체 빌드 완료")
+            st.code(
+                build_log or "빌드가 완료됐습니다.",
+                language="text",
+            )
+            st.link_button(
+                "🌐 로컬 홈페이지 열기",
+                "http://localhost:8000",
+                use_container_width=True,
+            )
+        except Exception as error:
+            st.error(f"전체 빌드 실패: {error}")
+            st.exception(error)
+
+    with st.expander("🛠 고급 생성 도구", expanded=False):
+        advanced_column1, advanced_column2 = st.columns(2)
+
+        with advanced_column1:
+            if st.button(
+                "🖼 썸네일만 추출",
+                use_container_width=True,
+            ):
+                update_newsletters()
+                st.success("썸네일 추출 완료")
+
+            if st.button(
+                "📄 기사 HTML만 생성",
+                use_container_width=True,
+            ):
                 render_articles()
+                st.success("기사 HTML 생성 완료")
 
-                st.success(
-                    "기사 HTML 생성 완료"
-                )
-
-            except Exception as error:
-                st.error(
-                    f"기사 HTML 생성 실패: {error}"
-                )
-
-    with column3:
-        if st.button(
-            "🏠 홈 HTML",
-            use_container_width=True,
-        ):
-            try:
+        with advanced_column2:
+            if st.button(
+                "🏠 홈 HTML만 생성",
+                use_container_width=True,
+            ):
                 render_home()
+                st.success("홈 HTML 생성 완료")
 
-                st.success(
-                    "홈 HTML 생성 완료"
-                )
-
-            except Exception as error:
-                st.error(
-                    f"홈 HTML 생성 실패: {error}"
-                )
-
-    with column4:
-        if st.button(
-            "📧 메일 HTML",
-            use_container_width=True,
-        ):
-            try:
+            if st.button(
+                "📧 메일 HTML만 생성",
+                use_container_width=True,
+            ):
                 render_email()
-
-                st.success(
-                    "메일 HTML 생성 완료"
-                )
-
-            except Exception as error:
-                st.error(
-                    f"메일 HTML 생성 실패: {error}"
-                )
-
-    with column5:
-        if st.button(
-            "🚀 전체 빌드",
-            use_container_width=True,
-        ):
-            try:
-                with st.spinner(
-                    "전체 HTML을 생성하고 있습니다..."
-                ):
-                    build_log = build_all()
-
-                st.success(
-                    "전체 빌드 완료"
-                )
-
-                st.code(
-                    build_log or "전체 빌드 완료",
-                    language="text",
-                )
-
-            except Exception as error:
-                st.error(
-                    f"전체 빌드 실패: {error}"
-                )
+                st.success("메일 HTML 생성 완료")
 
     st.divider()
     st.subheader("☁️ GitHub Pages 배포")
 
-    default_commit_message = (
-        f"Publish {newsletter_id.strip()}"
-        if newsletter_id.strip()
-        else (
-            f"Publish newsletter "
-            f"{datetime.now():%Y-%m-%d}"
-        )
-    )
-
     commit_message = st.text_input(
         "Git 커밋 메시지",
-        value=default_commit_message,
-        help=(
-            "GitHub 저장소에 기록될 변경 이력입니다. "
-            "예: Publish onboarding-002"
-        ),
-    )
-
-    st.warning(
-        "이 기능은 로컬 PC에서 실행한 Streamlit 관리자에서만 "
-        "사용하세요. 전체 빌드 후 변경 파일을 GitHub에 "
-        "커밋하고 push합니다."
+        value=f"Publish {automatic_newsletter_id}",
     )
 
     confirm_deploy = st.checkbox(
-        "현재 변경사항을 GitHub에 커밋하고 Pages에 배포합니다.",
-        value=False,
+        "전체 빌드 결과를 GitHub에 커밋하고 배포합니다."
     )
 
     if st.button(
@@ -1220,68 +1275,41 @@ with tab_create:
         use_container_width=True,
         disabled=not confirm_deploy,
     ):
-        if not commit_message.strip():
-            st.warning(
-                "Git 커밋 메시지를 입력해주세요."
-            )
+        try:
+            with st.spinner(
+                "빌드 후 GitHub에 push하고 있습니다..."
+            ):
+                deploy_log, pushed = deploy_to_github(
+                    commit_message.strip()
+                )
 
-        else:
-            try:
-                with st.spinner(
-                    "전체 빌드 후 GitHub에 push하고 있습니다. "
-                    "창을 닫지 마세요..."
-                ):
-                    deploy_log, pushed = deploy_to_github(
-                        commit_message.strip()
+            st.code(deploy_log, language="text")
+
+            if pushed:
+                st.success(
+                    "GitHub push 완료. "
+                    "Actions 완료 후 Pages에 반영됩니다."
+                )
+
+                link_column1, link_column2 = st.columns(2)
+                with link_column1:
+                    st.link_button(
+                        "⚙️ GitHub Actions 확인",
+                        GITHUB_ACTIONS_URL,
+                        use_container_width=True,
                     )
-
-                st.code(
-                    deploy_log,
-                    language="text",
-                )
-
-                if pushed:
-                    st.success(
-                        "GitHub push가 완료되었습니다. "
-                        "GitHub Actions가 끝나면 Pages에 반영됩니다."
+                with link_column2:
+                    st.link_button(
+                        "🌐 GitHub Pages 열기",
+                        SITE_URL,
+                        use_container_width=True,
                     )
+            else:
+                st.info("새로 커밋할 변경사항이 없습니다.")
 
-                    link_column1, link_column2 = st.columns(2)
-
-                    with link_column1:
-                        st.link_button(
-                            "⚙️ GitHub Actions 확인",
-                            GITHUB_ACTIONS_URL,
-                            use_container_width=True,
-                        )
-
-                    with link_column2:
-                        st.link_button(
-                            "🌐 GitHub Pages 열기",
-                            SITE_URL,
-                            use_container_width=True,
-                        )
-
-                else:
-                    st.info(
-                        "새로 커밋할 변경사항이 없습니다."
-                    )
-
-            except subprocess.TimeoutExpired:
-                st.error(
-                    "명령 실행 시간이 초과되었습니다. "
-                    "네트워크 또는 GitHub 인증 상태를 확인해주세요."
-                )
-
-            except Exception as error:
-                st.error(
-                    f"GitHub 배포 실패:\n\n{error}"
-                )
-
-                st.info(
-                    "Git Bash에서 git status와 git push가 "
-                    "정상 작동하는지 먼저 확인해주세요."
-                )
+        except Exception as error:
+            st.error(f"GitHub 배포 실패: {error}")
+            st.exception(error)
 
 
 # =========================================================
@@ -1291,33 +1319,24 @@ with tab_create:
 with tab_json:
     st.subheader("source_urls.json")
 
-    source_text = read_file(
-        SOURCE_URLS_PATH
-    )
-
     st.code(
-        source_text or "source_urls.json 없음",
+        read_file(SOURCE_URLS_PATH)
+        or "source_urls.json 없음",
         language="json",
     )
 
     st.subheader("newsletters.json")
 
-    newsletter_text = read_file(
-        NEWSLETTERS_PATH
-    )
-
     st.code(
-        newsletter_text or "newsletters.json 없음",
+        read_file(NEWSLETTERS_PATH)
+        or "newsletters.json 없음",
         language="json",
     )
 
     st.subheader("recipients.json")
 
-    recipients_text = read_file(
-        RECIPIENTS_PATH
-    )
-
     st.code(
-        recipients_text or "recipients.json 없음",
+        read_file(RECIPIENTS_PATH)
+        or "recipients.json 없음",
         language="json",
     )

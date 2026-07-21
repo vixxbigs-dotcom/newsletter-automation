@@ -1,15 +1,15 @@
 {
-  "newsletter_id": "onboarding-002",
-  "issue": "HRD Trend Newsletter 2호",
-  "category": "신입사원 교육",
-  "title": "HR 커리어 개발의 패러다임이 바뀌고 있다💫",
-  "date": "2026.07.10",
-  "read_time": "3분 뉴스",
-  "summary": "과거의 HR은 각 영역에서 복잡하고 정교했으나 지금 HR 제도들은 점점 단순해지고 있고 또 유연해지고 있어요!",
+  "newsletter_id": "culture-002",
+  "issue": "HRD Trend Newsletter",
+  "category": "조직활성화 교육",
+  "title": "새 뉴스레터 제목",
+  "date": "2026.07.21",
+  "read_time": "5분 뉴스",
+  "summary": "",
   "urls": [
-    "https://www.khrd.co.kr/news/view.php?idx=5057039&sm=w_total&stx=%EC%8B%A0%EC%9E%85%EC%82%AC%EC%9B%90&stx2=&w_section1=&sdate=&edate=",
-    "https://www.khrd.co.kr/news/view.php?idx=5057034&sm=w_total&stx=%EC%8B%A0%EC%9E%85%EC%82%AC%EC%9B%90&stx2=&w_section1=&sdate=&edate=",
-    "https://www.khrd.co.kr/news/view.php?idx=5057031&sm=w_total&stx=%EC%8B%A0%EC%9E%85%EC%82%AC%EC%9B%90&stx2=&w_section1=&sdate=&edate=",
-    "https://www.khrd.co.kr/news/view.php?idx=5057029&sm=w_total&stx=%EC%8B%A0%EC%9E%85%EC%82%AC%EC%9B%90&stx2=&w_section1=&sdate=&edate="
+    "https://www.khrd.co.kr/news/view.php?idx=5057054&sm=w_total&stx=MZ%EC%84%B8%EB%8C%80&stx2=&w_section1=&sdate=&edate=",
+    "https://www.khrd.co.kr/news/view.php?idx=5056676&sm=w_total&stx=MZ%EC%84%B8%EB%8C%80&stx2=&w_section1=&sdate=&edate=",
+    "https://www.khrd.co.kr/news/view.php?idx=5057253&sm=w_total&stx=1on1&stx2=&w_section1=&sdate=&edate=",
+    "https://www.khrd.co.kr/news/view.php?idx=5056378&sm=w_total&stx=MZ%EC%84%B8%EB%8C%80&stx2=&w_section1=&sdate=&edate="
   ]
 }

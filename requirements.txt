@@ -7,3 +7,6 @@ requests
 PyYAML
 python-dotenv
 openai
+google-genai
+python-dateutil
+pydantic
