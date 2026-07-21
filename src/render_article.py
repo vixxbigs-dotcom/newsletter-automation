@@ -78,7 +78,16 @@ def render_one_newsletter(newsletter, template):
     html = html.replace("{{ insight_title }}", newsletter.get("insight_title", ""))
     html = html.replace("{{ insight }}", newsletter.get("insight", ""))
     html = html.replace("{{ key_points }}", render_list_items(newsletter.get("key_points", [])))
-    html = html.replace("{{ source_articles }}", render_source_articles(newsletter.get("source_articles", [])))
+    source_articles = (
+        newsletter.get("articles")
+        or newsletter.get("source_articles")
+        or []
+    )
+
+    html = html.replace(
+        "{{ source_articles }}",
+        render_source_articles(source_articles[:4]),
+    )
     html = html.replace("{{ conclusion }}", newsletter.get("conclusion", ""))
     html = html.replace("{{ department_apply }}", render_list_items(newsletter.get("department_apply", [])))
     html = html.replace("{{ tags }}", render_tags(newsletter.get("tags", [])))
