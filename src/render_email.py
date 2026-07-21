@@ -16,10 +16,23 @@ def load_newsletters():
         return json.load(f)
 
 
-def get_latest_newsletter(newsletters):
+def get_newsletter(newsletters, newsletter_id=None):
     if not newsletters:
-        raise ValueError("newsletters.json에 뉴스레터 데이터가 없습니다.")
-    return newsletters[-1]
+        return None
+
+    if newsletter_id:
+        return next(
+            (
+                item for item in newsletters
+                if str(item.get("id", "")).strip() == str(newsletter_id).strip()
+            ),
+            None,
+        )
+
+    return max(
+        newsletters,
+        key=lambda item: str(item.get("created_at", item.get("date", ""))),
+    )
 
 
 def email_asset_path(path):
@@ -112,9 +125,16 @@ def render_source_articles(source_articles):
     """
 
 
-def render_email():
+def render_email(newsletter_id=None):
     newsletters = load_newsletters()
-    newsletter = get_latest_newsletter(newsletters)
+    newsletter = get_newsletter(newsletters, newsletter_id=newsletter_id)
+
+    OUTPUT_PATH.parent.mkdir(parents=True, exist_ok=True)
+    if newsletter is None:
+        if OUTPUT_PATH.exists():
+            OUTPUT_PATH.unlink()
+        print("뉴스레터 데이터가 없어 메일 HTML을 생성하지 않았습니다.")
+        return
 
     with open(TEMPLATE_PATH, "r", encoding="utf-8") as f:
         template = f.read()
@@ -128,7 +148,15 @@ def render_email():
     html = html.replace("{{ insight_title }}", newsletter.get("insight_title", ""))
     html = html.replace("{{ insight }}", newsletter.get("insight", ""))
     html = html.replace("{{ key_points }}", render_bullet_items(newsletter.get("key_points", [])))
-    html = html.replace("{{ source_articles }}", render_source_articles(newsletter.get("source_articles", [])))
+    source_articles = (
+        newsletter.get("articles")
+        or newsletter.get("source_articles")
+        or []
+    )
+    html = html.replace(
+        "{{ source_articles }}",
+        render_source_articles(source_articles[:4]),
+    )
     html = html.replace("{{ conclusion }}", newsletter.get("conclusion", ""))
     html = html.replace("{{ department_apply }}", render_bullet_items(newsletter.get("department_apply", [])))
     html = html.replace("{{ tags }}", render_tags(newsletter.get("tags", [])))

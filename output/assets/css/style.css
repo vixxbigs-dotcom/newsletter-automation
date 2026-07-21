@@ -544,3 +544,7 @@ a {
     display: none;
   }
 }
+
+.category-tab { appearance:none; border:0; background:transparent; color:var(--black); font:inherit; font-weight:900; padding:8px 4px; cursor:pointer; white-space:nowrap; }
+.category-tab:hover, .category-tab.active { text-decoration:underline; text-underline-offset:5px; }
+.category-section[hidden], #default-home-content[hidden] { display:none !important; }

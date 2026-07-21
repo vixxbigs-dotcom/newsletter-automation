@@ -4,6 +4,7 @@ import json
 import os
 import subprocess
 import sys
+import shutil
 from src.article_parser import fetch_articles
 from src.create_newsletter_with_gemini import create_newsletter
 import pandas as pd
@@ -35,6 +36,7 @@ NEWSLETTERS_PATH = BASE_DIR / "data" / "newsletters.json"
 SOURCE_URLS_PATH = BASE_DIR / "data" / "source_urls.json"
 RECIPIENTS_PATH = BASE_DIR / "data" / "recipients.json"
 NEWS_DB_PATH = BASE_DIR / "data" / "news_db.xlsx"
+UPLOAD_IMAGE_DIR = BASE_DIR / "assets" / "uploads"
 
 
 CATEGORIES = [
@@ -196,6 +198,61 @@ def save_generated_newsletter(newsletter):
         json.dumps(newsletters, ensure_ascii=False, indent=2),
         encoding="utf-8",
     )
+
+
+def delete_newsletter(newsletter_id):
+    newsletter_id = str(newsletter_id).strip()
+    newsletters = load_json_file(NEWSLETTERS_PATH, [])
+    remaining = [item for item in newsletters if str(item.get("id", "")).strip() != newsletter_id]
+    if len(remaining) == len(newsletters):
+        raise ValueError("삭제할 뉴스레터를 찾지 못했습니다.")
+    NEWSLETTERS_PATH.write_text(json.dumps(remaining, ensure_ascii=False, indent=2), encoding="utf-8")
+    article_path = ARTICLE_DIR / f"{newsletter_id}.html"
+    if article_path.exists():
+        article_path.unlink()
+    return len(remaining)
+
+
+def update_newsletter(newsletter_id, updates):
+    newsletters = load_json_file(NEWSLETTERS_PATH, [])
+    if not isinstance(newsletters, list):
+        raise ValueError("newsletters.json 형식이 올바르지 않습니다.")
+
+    found = False
+    for index, item in enumerate(newsletters):
+        if str(item.get("id", "")).strip() == str(newsletter_id).strip():
+            updated = dict(item)
+            updated.update(updates)
+            newsletters[index] = updated
+            found = True
+            break
+
+    if not found:
+        raise ValueError("수정할 뉴스레터를 찾지 못했습니다.")
+
+    NEWSLETTERS_PATH.write_text(
+        json.dumps(newsletters, ensure_ascii=False, indent=2),
+        encoding="utf-8",
+    )
+    return newsletters[index]
+
+
+def save_uploaded_hero_image(uploaded_file, newsletter_id):
+    if uploaded_file is None:
+        return None
+
+    suffix = Path(uploaded_file.name).suffix.lower()
+    if suffix not in {".png", ".jpg", ".jpeg", ".webp"}:
+        raise ValueError("PNG, JPG, JPEG, WEBP 이미지만 업로드할 수 있습니다.")
+
+    UPLOAD_IMAGE_DIR.mkdir(parents=True, exist_ok=True)
+    target = UPLOAD_IMAGE_DIR / f"{newsletter_id}-hero{suffix}"
+    target.write_bytes(uploaded_file.getbuffer())
+    return f"assets/uploads/{target.name}"
+
+
+def split_lines(text):
+    return [line.strip() for line in str(text).splitlines() if line.strip()]
 
 
 # =========================================================
@@ -609,6 +666,7 @@ def deploy_to_github(commit_message):
     tab_email,
     tab_db,
     tab_create,
+    tab_manage,
     tab_json,
 ) = st.tabs(
     [
@@ -617,6 +675,7 @@ def deploy_to_github(commit_message):
         "📧 메일 발송",
         "📊 뉴스 DB",
         "📝 뉴스레터 생성",
+        "🗑️ 기사 관리",
         "🧾 JSON 미리보기",
     ]
 )
@@ -687,101 +746,119 @@ with tab_article:
 # =========================================================
 
 with tab_email:
-    st.subheader("메일 HTML 미리보기")
+    st.subheader("보낼 기사 선택")
 
-    email_html = read_file(EMAIL_PATH)
+    email_newsletters = load_json_file(NEWSLETTERS_PATH, [])
+    email_newsletters = email_newsletters if isinstance(email_newsletters, list) else []
 
-    if email_html:
-        st.components.v1.html(
-            email_html,
-            height=850,
-            scrolling=True,
+    if not email_newsletters:
+        st.warning("발송할 뉴스레터가 없습니다.")
+    else:
+        email_ids = [
+            str(item.get("id", "")).strip()
+            for item in email_newsletters
+            if str(item.get("id", "")).strip()
+        ]
+
+        selected_email_id = st.selectbox(
+            "메일로 보낼 기사",
+            email_ids,
+            format_func=lambda newsletter_id: next(
+                (
+                    f"{item.get('title', '제목 없음')} "
+                    f"({item.get('category', '카테고리 없음')} · {newsletter_id})"
+                    for item in email_newsletters
+                    if str(item.get("id", "")).strip() == newsletter_id
+                ),
+                newsletter_id,
+            ),
+            key="selected_email_newsletter_id",
         )
 
-        with open(EMAIL_PATH, "rb") as file:
-            st.download_button(
-                "⬇️ 메일 HTML 다운로드",
-                data=file,
-                file_name="newsletter_email.html",
-                mime="text/html",
-                use_container_width=True,
-            )
-    else:
-        st.warning("메일 HTML이 없습니다.")
-
-    st.divider()
-    st.subheader("수신자 표 관리")
-
-    recipients_df = load_recipients_df()
-
-    edited_recipients_df = st.data_editor(
-        recipients_df,
-        num_rows="dynamic",
-        use_container_width=True,
-        column_config={
-            "name": st.column_config.TextColumn("이름"),
-            "email": st.column_config.TextColumn("이메일"),
-            "group": st.column_config.TextColumn("그룹"),
-            "send": st.column_config.CheckboxColumn(
-                "발송대상",
-                default=False,
-            ),
-        },
-        hide_index=True,
-        key="recipient_editor",
-    )
-
-    if st.button(
-        "💾 수신자 표 저장",
-        use_container_width=True,
-    ):
-        save_recipients_df(edited_recipients_df)
-        st.success("수신자 표 저장 완료")
-        st.rerun()
-
-    st.divider()
-    st.subheader("Gmail 발송")
-
-    selected_emails = get_selected_recipient_emails()
-
-    receiver_email = st.text_area(
-        "받는 사람(To)",
-        value=", ".join(selected_emails),
-        height=90,
-    )
-
-    cc_email = st.text_input(
-        "참조(CC)",
-    )
-
-    subject = st.text_input(
-        "메일 제목",
-        value="HRD Radar 뉴스레터",
-    )
-
-    if st.button(
-        "📤 Gmail 발송",
-        use_container_width=True,
-    ):
-        to_list = normalize_email_list(receiver_email)
-        cc_list = normalize_email_list(cc_email)
-
-        if not to_list:
-            st.warning("받는 사람을 입력해주세요.")
-        else:
+        if st.button(
+            "📧 선택한 기사로 메일 HTML 만들기",
+            use_container_width=True,
+        ):
             try:
-                send_email(
-                    receiver_email=", ".join(to_list),
-                    subject=subject,
-                    cc_email=", ".join(cc_list),
-                )
-
-                st.success(
-                    f"메일 발송 완료: {len(to_list)}명"
-                )
-
+                render_email(newsletter_id=selected_email_id)
+                st.success("선택한 기사로 메일 HTML을 생성했습니다.")
+                st.rerun()
             except Exception as error:
-                st.error(f"메일 발송 실패: {error}")
+                st.error(f"메일 HTML 생성 실패: {error}")
+
+        st.subheader("메일 HTML 미리보기")
+        email_html = read_file(EMAIL_PATH)
+
+        if email_html:
+            st.components.v1.html(email_html, height=850, scrolling=True)
+            with open(EMAIL_PATH, "rb") as file:
+                st.download_button(
+                    "⬇️ 메일 HTML 다운로드",
+                    data=file,
+                    file_name=f"newsletter_email_{selected_email_id}.html",
+                    mime="text/html",
+                    use_container_width=True,
+                )
+        else:
+            st.info("위 버튼을 눌러 선택한 기사의 메일 HTML을 생성해주세요.")
+
+        st.divider()
+        st.subheader("수신자 표 관리")
+
+        recipients_df = load_recipients_df()
+        edited_recipients_df = st.data_editor(
+            recipients_df,
+            num_rows="dynamic",
+            use_container_width=True,
+            column_config={
+                "name": st.column_config.TextColumn("이름"),
+                "email": st.column_config.TextColumn("이메일"),
+                "group": st.column_config.TextColumn("그룹"),
+                "send": st.column_config.CheckboxColumn("발송대상", default=False),
+            },
+            hide_index=True,
+            key="recipient_editor",
+        )
+
+        if st.button("💾 수신자 표 저장", use_container_width=True):
+            save_recipients_df(edited_recipients_df)
+            st.success("수신자 표 저장 완료")
+            st.rerun()
+
+        st.divider()
+        st.subheader("Gmail 발송")
+        selected_emails = get_selected_recipient_emails()
+        receiver_email = st.text_area(
+            "받는 사람(To)",
+            value=", ".join(selected_emails),
+            height=90,
+        )
+        cc_email = st.text_input("참조(CC)")
+        selected_email_item = next(
+            (item for item in email_newsletters if str(item.get("id", "")).strip() == selected_email_id),
+            {},
+        )
+        subject = st.text_input(
+            "메일 제목",
+            value=selected_email_item.get("title", "HRD Radar 뉴스레터"),
+        )
+
+        if st.button("📤 선택한 기사 Gmail 발송", use_container_width=True):
+            to_list = normalize_email_list(receiver_email)
+            cc_list = normalize_email_list(cc_email)
+            if not to_list:
+                st.warning("받는 사람을 입력해주세요.")
+            else:
+                try:
+                    render_email(newsletter_id=selected_email_id)
+                    send_email(
+                        receiver_email=", ".join(to_list),
+                        subject=subject,
+                        cc_email=", ".join(cc_list),
+                    )
+                    st.success(f"메일 발송 완료: {len(to_list)}명")
+                except Exception as error:
+                    st.error(f"메일 발송 실패: {error}")
 
 
 # =========================================================
@@ -1144,6 +1221,11 @@ with tab_create:
                     newsletter_id=newsletter_id,
                     save=False,
                 )
+                generated_newsletter["category"] = category
+                generated_newsletter["issue"] = str(source_data.get("issue", "")).strip()
+                generated_newsletter["date"] = str(source_data.get("date", "")).strip()
+                generated_newsletter["read_time"] = str(source_data.get("read_time", "5분 뉴스")).strip() or "5분 뉴스"
+                generated_newsletter.setdefault("insight_title", "통합되는 인사이트")
                 save_generated_newsletter(generated_newsletter)
 
             st.session_state["generated_newsletter"] = (
@@ -1310,6 +1392,162 @@ with tab_create:
         except Exception as error:
             st.error(f"GitHub 배포 실패: {error}")
             st.exception(error)
+
+
+# =========================================================
+# 기사 관리
+# =========================================================
+
+with tab_manage:
+    st.subheader("발행 기사 관리")
+    published_newsletters = load_json_file(NEWSLETTERS_PATH, [])
+    published_newsletters = published_newsletters if isinstance(published_newsletters, list) else []
+
+    if not published_newsletters:
+        st.info("현재 저장된 뉴스레터가 없습니다.")
+    else:
+        ids = [
+            str(item.get("id", "")).strip()
+            for item in published_newsletters
+            if str(item.get("id", "")).strip()
+        ]
+        selected_manage_id = st.selectbox(
+            "관리할 기사",
+            ids,
+            format_func=lambda newsletter_id: next(
+                (
+                    f"{item.get('title', '제목 없음')} "
+                    f"({item.get('category', '카테고리 없음')} · {newsletter_id})"
+                    for item in published_newsletters
+                    if str(item.get("id", "")).strip() == newsletter_id
+                ),
+                newsletter_id,
+            ),
+            key="manage_newsletter_id",
+        )
+        selected_item = next(
+            (
+                item for item in published_newsletters
+                if str(item.get("id", "")).strip() == selected_manage_id
+            ),
+            {},
+        )
+
+        st.markdown("### 기사 미리보기")
+        local_article_path = ARTICLE_DIR / f"{selected_manage_id}.html"
+        if local_article_path.exists():
+            st.components.v1.html(
+                read_file(local_article_path),
+                height=900,
+                scrolling=True,
+            )
+        else:
+            st.info("기사 HTML이 없습니다. 전체 빌드를 먼저 실행해주세요.")
+
+        st.divider()
+        st.markdown("### 기사 내용 및 대표 썸네일 수정")
+
+        with st.form("newsletter_edit_form"):
+            column1, column2 = st.columns(2)
+            with column1:
+                edit_title = st.text_input("제목", value=selected_item.get("title", ""))
+                edit_category = st.selectbox(
+                    "카테고리",
+                    CATEGORIES,
+                    index=(
+                        CATEGORIES.index(selected_item.get("category"))
+                        if selected_item.get("category") in CATEGORIES
+                        else len(CATEGORIES) - 1
+                    ),
+                )
+                edit_date = st.text_input("발행일", value=selected_item.get("date", ""))
+                edit_read_time = st.text_input("읽는 시간", value=selected_item.get("read_time", "5분 뉴스"))
+            with column2:
+                edit_hero_url = st.text_input(
+                    "대표 썸네일 URL 또는 경로",
+                    value=selected_item.get("hero_image", ""),
+                    help="외부 이미지 URL 또는 assets/... 경로를 입력할 수 있습니다.",
+                )
+                uploaded_hero = st.file_uploader(
+                    "새 대표 썸네일 업로드",
+                    type=["png", "jpg", "jpeg", "webp"],
+                )
+                if selected_item.get("hero_image"):
+                    st.image(selected_item.get("hero_image"), caption="현재 대표 썸네일")
+
+            edit_summary = st.text_area("한 줄 요약", value=selected_item.get("summary", ""), height=100)
+            edit_insight_title = st.text_input("인사이트 제목", value=selected_item.get("insight_title", "통합되는 인사이트"))
+            edit_insight = st.text_area("통합 인사이트", value=selected_item.get("insight", ""), height=180)
+            edit_key_points = st.text_area(
+                "핵심 포인트 · 한 줄에 하나",
+                value="\n".join(selected_item.get("key_points", [])),
+                height=150,
+            )
+            edit_conclusion = st.text_area("정리 문장", value=selected_item.get("conclusion", ""), height=150)
+            edit_department_apply = st.text_area(
+                "교육 기획 활용 포인트 · 한 줄에 하나",
+                value="\n".join(selected_item.get("department_apply", [])),
+                height=150,
+            )
+            edit_tags = st.text_input(
+                "태그 · 쉼표로 구분",
+                value=", ".join(selected_item.get("tags", [])),
+            )
+
+            save_edits = st.form_submit_button(
+                "💾 수정 내용 저장 후 전체 빌드",
+                use_container_width=True,
+            )
+
+        if save_edits:
+            try:
+                uploaded_path = save_uploaded_hero_image(uploaded_hero, selected_manage_id)
+                hero_image = uploaded_path or edit_hero_url.strip()
+                updates = {
+                    "title": edit_title.strip(),
+                    "category": edit_category,
+                    "date": edit_date.strip(),
+                    "read_time": edit_read_time.strip(),
+                    "hero_image": hero_image,
+                    "summary": edit_summary.strip(),
+                    "insight_title": edit_insight_title.strip(),
+                    "insight": edit_insight.strip(),
+                    "key_points": split_lines(edit_key_points),
+                    "conclusion": edit_conclusion.strip(),
+                    "department_apply": split_lines(edit_department_apply),
+                    "tags": [tag.strip().lstrip("#") for tag in edit_tags.split(",") if tag.strip()],
+                }
+                update_newsletter(selected_manage_id, updates)
+                with st.spinner("수정 내용을 반영해 전체 HTML을 다시 생성하고 있습니다..."):
+                    build_all()
+                st.success("기사 수정 및 전체 빌드가 완료됐습니다.")
+                st.rerun()
+            except Exception as error:
+                st.error(f"기사 수정 실패: {error}")
+                st.exception(error)
+
+        st.divider()
+        st.markdown("### 기사 삭제")
+        confirm_delete = st.checkbox(
+            "이 기사를 영구 삭제하는 것에 동의합니다.",
+            key="confirm_manage_delete",
+        )
+        if st.button(
+            "🗑️ 선택한 기사 삭제",
+            type="primary",
+            use_container_width=True,
+            disabled=not confirm_delete,
+        ):
+            try:
+                remaining_count = delete_newsletter(selected_manage_id)
+                with st.spinner("홈·기사·메일 HTML을 다시 생성하고 있습니다..."):
+                    build_all()
+                st.session_state.pop("generated_newsletter", None)
+                st.success(f"삭제 완료 · 남은 뉴스레터 {remaining_count}건")
+                st.rerun()
+            except Exception as error:
+                st.error(f"기사 삭제 실패: {error}")
+                st.exception(error)
 
 
 # =========================================================

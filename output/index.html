@@ -19,29 +19,31 @@
         alt="신문지 캐릭터"
     />
 
-    <nav class="category-nav">
-      <a href="#">AI/AX 교육</a>
-      <a href="#">신입사원 교육</a>
-      <a href="#">승격자 교육</a>
-      <a href="#">리더 교육</a>
-      <a href="#">조직활성화 교육</a>
+    <nav class="category-nav" aria-label="뉴스레터 카테고리">
+      <button type="button" class="category-tab active" data-category="all">전체</button>
+      <button type="button" class="category-tab" data-category="ai-ax">AI/AX 교육</button>
+      <button type="button" class="category-tab" data-category="onboarding">신입사원 교육</button>
+      <button type="button" class="category-tab" data-category="promotion">승격자 교육</button>
+      <button type="button" class="category-tab" data-category="leadership">리더 교육</button>
+      <button type="button" class="category-tab" data-category="culture">조직활성화 교육</button>
     </nav>
   </header>
 
   <main class="page">
+    <div id="default-home-content">
     <section class="hero-section">
       
       <div class="hero-copy">
         <div class="eyebrow">TODAY'S HRD INSIGHT</div>
-        <h1>수평 소통으로 조직 활성화, 기업들의 새로운 시도 🚀</h1>
-        <p>MZ세대 유입으로 기업들이 수평적 소통과 직원 참여를 늘리고 있어요. 딱딱한 교육 대신 문화 행사나 워크숍으로 조직 활성화를 꾀하는 상황이에요.</p>
+        <h1>리더가 먼저 배우고 실무로 증명하는 기업들의 AI·AX 교육 트렌드</h1>
+        <p>대기업부터 공공기관까지 경영진의 AI 문해력을 높이고, 임직원이 실무에서 직접 AI 에이전트를 구축하도록 돕는 실습 중심의 AX 교육 흐름을 짚어봅니다.</p>
         <div class="hero-meta">
-           ·  · 
+          AI/AX 교육 · 2026.07.13 · 5분 뉴스
         </div>
       </div>
 
-      <div class="hero-image" onclick="location.href='articles/culture-003.html'">
-        <img src="https://www.khrd.co.kr/data/cheditor4/2604/988401614_04H2NPsf_EB8F99EC9691EC839DEBAA85.jpg" alt="수평 소통으로 조직 활성화, 기업들의 새로운 시도 🚀" />
+      <div class="hero-image" onclick="location.href='articles/ai-ax-001.html'">
+        <img src="assets/banners/ai-ax-001-banner.png" alt="리더가 먼저 배우고 실무로 증명하는 기업들의 AI·AX 교육 트렌드" />
       </div>
     
     </section>
@@ -54,6 +56,15 @@
 
       <div class="article-grid four">
         
+        <article class="article-card" onclick="location.href='articles/culture-003.html'">
+          <img src="https://www.khrd.co.kr/data/cheditor4/2604/988401614_04H2NPsf_EB8F99EC9691EC839DEBAA85.jpg" alt="수평 소통으로 조직 활성화, 기업들의 새로운 시도 🚀" />
+          <div class="article-category"></div>
+          <h3>수평 소통으로 조직 활성화, 기업들의 새로운 시도 🚀</h3>
+          <p>MZ세대 유입으로 기업들이 수평적 소통과 직원 참여를 늘리고 있어요. 딱딱한 교육 대신 문화 행사나 워크숍으로 조직 활성화를 꾀하는 상황이에요.</p>
+          <div class="article-date"></div>
+        </article>
+    
+
         <article class="article-card" onclick="location.href='articles/culture-002.html'">
           <img src="https://www.khrd.co.kr/data/cheditor4/2604/988401614_04H2NPsf_EB8F99EC9691EC839DEBAA85.jpg" alt="MZ세대와 함께 만드는 조직문화, 어떻게 시작할까요? 💡" />
           <div class="article-category"></div>
@@ -72,15 +83,6 @@
         </article>
     
 
-        <article class="article-card" onclick="location.href='articles/ai-ax-001.html'">
-          <img src="assets/banners/ai-ax-001-banner.png" alt="리더가 먼저 배우고 실무로 증명하는 기업들의 AI·AX 교육 트렌드" />
-          <div class="article-category">AI/AX 교육</div>
-          <h3>리더가 먼저 배우고 실무로 증명하는 기업들의 AI·AX 교육 트렌드</h3>
-          <p>대기업부터 공공기관까지 경영진의 AI 문해력을 높이고, 임직원이 실무에서 직접 AI 에이전트를 구축하도록 돕는 실습 중심의 AX 교육 흐름을 짚어봅니다.</p>
-          <div class="article-date">2026.07.13</div>
-        </article>
-    
-
         <article class="article-card" onclick="location.href='articles/onboarding-002.html'">
           <img src="assets/banners/onboarding-001-banner.png" alt="HR 커리어 개발의 패러다임이 바뀌고 있다💫" />
           <div class="article-category">신입사원 교육</div>
@@ -91,9 +93,11 @@
     
       </div>
     </section>
+    </div>
 
-    
-    <section class="section-block">
+    <div id="category-content">
+      
+    <section class="section-block category-section" data-category="ai-ax">
       <div class="section-title-row">
         <h2>AI/AX 교육</h2>
         <a href="#">더보기</a>
@@ -122,7 +126,7 @@
     </section>
     
 
-    <section class="section-block">
+    <section class="section-block category-section" data-category="onboarding">
       <div class="section-title-row">
         <h2>신입사원 교육</h2>
         <a href="#">더보기</a>
@@ -144,6 +148,7 @@
 
 
 
+    </div>
 
     <section class="subscribe-box">
       <div>
@@ -162,5 +167,37 @@
     <strong>multicampus HRD Radar</strong>
     <span>AI-curated HRD newsletter automation project</span>
   </footer>
+
+  <script>
+    const tabs = document.querySelectorAll(".category-tab");
+    const defaultContent = document.getElementById("default-home-content");
+    const sections = document.querySelectorAll(".category-section");
+    const validCategories = new Set(["all", "ai-ax", "onboarding", "promotion", "leadership", "culture"]);
+
+    function applyCategory(category, updateHash = true) {
+      const safeCategory = validCategories.has(category) ? category : "all";
+
+      tabs.forEach((tab) => {
+        tab.classList.toggle("active", tab.dataset.category === safeCategory);
+      });
+
+      defaultContent.hidden = safeCategory !== "all";
+      sections.forEach((section) => {
+        section.hidden = safeCategory !== "all" && section.dataset.category !== safeCategory;
+      });
+
+      if (updateHash) {
+        const nextHash = safeCategory === "all" ? "" : `#category=${safeCategory}`;
+        history.replaceState(null, "", `${location.pathname}${location.search}${nextHash}`);
+      }
+    }
+
+    tabs.forEach((tab) => {
+      tab.addEventListener("click", () => applyCategory(tab.dataset.category));
+    });
+
+    const initialMatch = location.hash.match(/^#category=([a-z-]+)$/);
+    applyCategory(initialMatch ? initialMatch[1] : "all", false);
+  </script>
 </body>
 </html>

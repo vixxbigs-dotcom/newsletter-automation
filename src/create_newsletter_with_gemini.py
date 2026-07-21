@@ -19,7 +19,7 @@ from src.json_schema import ARTICLE_ANALYSIS_SCHEMA, NEWSLETTER_SCHEMA
 
 
 BASE_DIR = Path(__file__).resolve().parent.parent
-NEWSLETTERS_PATH = BASE_DIR / "newsletters.json"
+NEWSLETTERS_PATH = BASE_DIR / "data" / "newsletters.json"
 
 REQUEST_TIMEOUT = 20
 DEFAULT_RETRY_COUNT = 2
@@ -448,6 +448,7 @@ def _normalize_newsletter(
     newsletter: dict[str, Any],
     articles: list[dict[str, str]],
     newsletter_id: str | None = None,
+    category: str = "HRD 트렌드",
 ) -> dict[str, Any]:
     article_summaries = newsletter.get("article_summaries", [])
 
@@ -479,6 +480,7 @@ def _normalize_newsletter(
 
     return {
         "id": generated_id,
+        "category": category,
         "title": title,
         "summary": newsletter.get("summary", ""),
         "insight": newsletter.get("insight", ""),
@@ -608,6 +610,7 @@ def create_newsletter(
         newsletter=newsletter,
         articles=articles,
         newsletter_id=newsletter_id,
+        category=category,
     )
 
     result["_review_score"] = (

@@ -19,16 +19,18 @@
         alt="신문지 캐릭터"
     />
 
-    <nav class="category-nav">
-      <a href="#">AI/AX 교육</a>
-      <a href="#">신입사원 교육</a>
-      <a href="#">승격자 교육</a>
-      <a href="#">리더 교육</a>
-      <a href="#">조직활성화 교육</a>
+    <nav class="category-nav" aria-label="뉴스레터 카테고리">
+      <button type="button" class="category-tab active" data-category="all">전체</button>
+      <button type="button" class="category-tab" data-category="ai-ax">AI/AX 교육</button>
+      <button type="button" class="category-tab" data-category="onboarding">신입사원 교육</button>
+      <button type="button" class="category-tab" data-category="promotion">승격자 교육</button>
+      <button type="button" class="category-tab" data-category="leadership">리더 교육</button>
+      <button type="button" class="category-tab" data-category="culture">조직활성화 교육</button>
     </nav>
   </header>
 
   <main class="page">
+    <div id="default-home-content">
     <section class="hero-section">
       {{ featured_article }}
     </section>
@@ -43,8 +45,11 @@
         {{ recommended_articles }}
       </div>
     </section>
+    </div>
 
-    {{ category_sections }}
+    <div id="category-content">
+      {{ category_sections }}
+    </div>
 
     <section class="subscribe-box">
       <div>
@@ -63,5 +68,37 @@
     <strong>multicampus HRD Radar</strong>
     <span>AI-curated HRD newsletter automation project</span>
   </footer>
+
+  <script>
+    const tabs = document.querySelectorAll(".category-tab");
+    const defaultContent = document.getElementById("default-home-content");
+    const sections = document.querySelectorAll(".category-section");
+    const validCategories = new Set(["all", "ai-ax", "onboarding", "promotion", "leadership", "culture"]);
+
+    function applyCategory(category, updateHash = true) {
+      const safeCategory = validCategories.has(category) ? category : "all";
+
+      tabs.forEach((tab) => {
+        tab.classList.toggle("active", tab.dataset.category === safeCategory);
+      });
+
+      defaultContent.hidden = safeCategory !== "all";
+      sections.forEach((section) => {
+        section.hidden = safeCategory !== "all" && section.dataset.category !== safeCategory;
+      });
+
+      if (updateHash) {
+        const nextHash = safeCategory === "all" ? "" : `#category=${safeCategory}`;
+        history.replaceState(null, "", `${location.pathname}${location.search}${nextHash}`);
+      }
+    }
+
+    tabs.forEach((tab) => {
+      tab.addEventListener("click", () => applyCategory(tab.dataset.category));
+    });
+
+    const initialMatch = location.hash.match(/^#category=([a-z-]+)$/);
+    applyCategory(initialMatch ? initialMatch[1] : "all", false);
+  </script>
 </body>
 </html>

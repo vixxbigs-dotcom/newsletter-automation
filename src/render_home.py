@@ -1,4 +1,5 @@
 import json
+import shutil
 from pathlib import Path
 
 
@@ -18,7 +19,7 @@ def get_latest_newsletter(newsletters):
     if not newsletters:
         return None
 
-    return newsletters[-1]
+    return max(newsletters, key=lambda item: str(item.get("created_at", item.get("date", ""))))
 
 
 def home_asset_path(path):
@@ -89,7 +90,7 @@ def create_featured_html(newsletter):
     """
 
 
-def create_category_section(category_name, newsletters):
+def create_category_section(category_name, category_slug, newsletters):
     category_items = [
         item for item in newsletters
         if item.get("category") == category_name
@@ -98,10 +99,10 @@ def create_category_section(category_name, newsletters):
     if not category_items:
         return ""
 
-    cards_html = "\n".join(create_article_card(item) for item in category_items[:3])
+    cards_html = "\n".join(create_article_card(item) for item in category_items)
 
     return f"""
-    <section class="section-block">
+    <section class="section-block category-section" data-category="{category_slug}">
       <div class="section-title-row">
         <h2>{category_name}</h2>
         <a href="#">더보기</a>
@@ -127,17 +128,17 @@ def render_home():
 
     recommended_html = "\n".join(create_article_card(item) for item in recommended)
 
-    categories = [
-        "AI/AX 교육",
-        "신입사원 교육",
-        "승격자 교육",
-        "리더 교육",
-        "조직활성화 교육",
-    ]
+    categories = {
+        "AI/AX 교육": "ai-ax",
+        "신입사원 교육": "onboarding",
+        "승격자 교육": "promotion",
+        "리더 교육": "leadership",
+        "조직활성화 교육": "culture",
+    }
 
     category_sections_html = "\n".join(
-        create_category_section(category, newsletters)
-        for category in categories
+        create_category_section(category, slug, newsletters)
+        for category, slug in categories.items()
     )
 
     with open(TEMPLATE_PATH, "r", encoding="utf-8") as f:
@@ -153,19 +154,15 @@ def render_home():
     with open(OUTPUT_PATH, "w", encoding="utf-8") as f:
         f.write(html)
 
+    assets_src = BASE_DIR / "assets"
+    assets_dst = BASE_DIR / "output" / "assets"
+    if assets_dst.exists():
+        shutil.rmtree(assets_dst)
+    if assets_src.exists():
+        shutil.copytree(assets_src, assets_dst)
+
     print(f"홈페이지 생성 완료: {OUTPUT_PATH}")
 
 
 if __name__ == "__main__":
     render_home()
-
-
-import shutil
-
-assets_src = BASE_DIR / "assets"
-assets_dst = BASE_DIR / "output" / "assets"
-
-if assets_dst.exists():
-    shutil.rmtree(assets_dst)
-
-shutil.copytree(assets_src, assets_dst)

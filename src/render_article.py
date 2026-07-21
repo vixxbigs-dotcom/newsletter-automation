@@ -103,6 +103,11 @@ def render_articles():
 
     OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
 
+    valid_ids = {str(item.get("id", "")).strip() for item in newsletters}
+    for existing_file in OUTPUT_DIR.glob("*.html"):
+        if existing_file.stem not in valid_ids:
+            existing_file.unlink()
+
     for newsletter in newsletters:
         html = render_one_newsletter(newsletter, template)
         output_path = OUTPUT_DIR / f"{newsletter['id']}.html"
