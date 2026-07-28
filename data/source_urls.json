@@ -1,5 +1,5 @@
 {
-  "newsletter_id": "onboarding-003",
+  "newsletter_id": "onboarding-004",
   "issue": "HRD Trend Newsletter",
   "category": "신입사원 교육",
   "title": "새 뉴스레터 제목",
@@ -7,9 +7,9 @@
   "read_time": "5분 뉴스",
   "summary": "",
   "urls": [
-    "https://www.khrd.co.kr/news/view.php?idx=5057303",
-    "https://www.khrd.co.kr/news/view.php?idx=5057251",
-    "https://www.khrd.co.kr/news/view.php?idx=5057101",
-    "https://www.khrd.co.kr/news/view.php?idx=5057009"
+    "https://www.khrd.co.kr/news/view.php?idx=5057093",
+    "https://www.khrd.co.kr/news/view.php?idx=5056968",
+    "https://www.khrd.co.kr/news/view.php?idx=5056773",
+    "https://www.khrd.co.kr/news/view.php?idx=5056772"
   ]
 }
