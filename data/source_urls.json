@@ -1,15 +1,15 @@
 {
-  "newsletter_id": "onboarding-004",
+  "newsletter_id": "culture-004",
   "issue": "HRD Trend Newsletter",
-  "category": "신입사원 교육",
+  "category": "조직활성화 교육",
   "title": "새 뉴스레터 제목",
   "date": "2026.07.28",
   "read_time": "5분 뉴스",
   "summary": "",
   "urls": [
-    "https://www.khrd.co.kr/news/view.php?idx=5057093",
-    "https://www.khrd.co.kr/news/view.php?idx=5056968",
-    "https://www.khrd.co.kr/news/view.php?idx=5056773",
-    "https://www.khrd.co.kr/news/view.php?idx=5056772"
+    "https://www.khrd.co.kr/news/view.php?idx=5057372",
+    "https://www.khrd.co.kr/news/view.php?idx=5057077",
+    "https://www.khrd.co.kr/news/view.php?idx=5057087",
+    "https://www.khrd.co.kr/news/view.php?idx=5057054"
   ]
 }
