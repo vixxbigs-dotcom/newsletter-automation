@@ -255,6 +255,62 @@ def split_lines(text):
     return [line.strip() for line in str(text).splitlines() if line.strip()]
 
 
+def resolve_streamlit_image(image_value):
+    """Streamlit 미리보기용 이미지 경로를 안전하게 변환합니다."""
+    value = str(image_value or "").strip()
+    if not value:
+        return None
+
+    if value.startswith(("http://", "https://")):
+        return value
+
+    normalized = value.replace("\\", "/")
+
+    candidates = []
+    raw_path = Path(normalized)
+    if raw_path.is_absolute():
+        candidates.append(raw_path)
+    else:
+        candidates.extend([
+            BASE_DIR / normalized,
+            BASE_DIR / normalized.lstrip("./"),
+            BASE_DIR / "output" / normalized,
+        ])
+
+        if normalized.startswith("../assets/"):
+            candidates.append(BASE_DIR / normalized.replace("../assets/", "assets/", 1))
+        elif normalized.startswith("../../assets/"):
+            candidates.append(BASE_DIR / normalized.replace("../../assets/", "assets/", 1))
+
+    for candidate in candidates:
+        try:
+            if candidate.exists() and candidate.is_file():
+                return str(candidate.resolve())
+        except OSError:
+            continue
+
+    return None
+
+
+def show_streamlit_image(image_value, caption=None, use_container_width=True):
+    resolved = resolve_streamlit_image(image_value)
+    if resolved:
+        st.image(
+            resolved,
+            caption=caption,
+            use_container_width=use_container_width,
+        )
+        return True
+
+    if str(image_value or "").strip():
+        st.caption(
+            f"이미지 파일을 찾지 못했습니다: {image_value}"
+        )
+    return False
+
+
+
+
 # =========================================================
 # 뉴스 DB 함수
 # =========================================================
@@ -1272,7 +1328,7 @@ with tab_create:
         hero_image = generated_newsletter.get("hero_image")
         if hero_image:
             st.write("**대표 썸네일:** 첫 번째 기사 이미지")
-            st.image(hero_image, use_container_width=True)
+            show_streamlit_image(hero_image, use_container_width=True)
 
         st.info(
             "생성 결과는 data/newsletters.json에 저장됐습니다. "
@@ -1468,7 +1524,10 @@ with tab_manage:
                     type=["png", "jpg", "jpeg", "webp"],
                 )
                 if selected_item.get("hero_image"):
-                    st.image(selected_item.get("hero_image"), caption="현재 대표 썸네일")
+                    show_streamlit_image(
+                        selected_item.get("hero_image"),
+                        caption="현재 대표 썸네일",
+                    )
 
             edit_summary = st.text_area("한 줄 요약", value=selected_item.get("summary", ""), height=100)
             edit_insight_title = st.text_input("인사이트 제목", value=selected_item.get("insight_title", "통합되는 인사이트"))
