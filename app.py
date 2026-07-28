@@ -667,7 +667,6 @@ def deploy_to_github(commit_message):
     tab_db,
     tab_create,
     tab_manage,
-    tab_json,
 ) = st.tabs(
     [
         "🏠 홈 미리보기",
@@ -675,8 +674,7 @@ def deploy_to_github(commit_message):
         "📧 메일 발송",
         "📊 뉴스 DB",
         "📝 뉴스레터 생성",
-        "🗑️ 기사 관리",
-        "🧾 JSON 미리보기",
+        "🛠️ 기사 관리",
     ]
 )
 
@@ -1434,15 +1432,12 @@ with tab_manage:
         )
 
         st.markdown("### 기사 미리보기")
-        local_article_path = ARTICLE_DIR / f"{selected_manage_id}.html"
-        if local_article_path.exists():
-            st.components.v1.html(
-                read_file(local_article_path),
-                height=900,
-                scrolling=True,
-            )
-        else:
-            st.info("기사 HTML이 없습니다. 전체 빌드를 먼저 실행해주세요.")
+        article_preview_url = f"{SITE_URL}/articles/{selected_manage_id}.html"
+        st.components.v1.iframe(
+            article_preview_url,
+            height=900,
+            scrolling=True,
+        )
 
         st.divider()
         st.markdown("### 기사 내용 및 대표 썸네일 수정")
@@ -1548,33 +1543,3 @@ with tab_manage:
             except Exception as error:
                 st.error(f"기사 삭제 실패: {error}")
                 st.exception(error)
-
-
-# =========================================================
-# JSON 미리보기
-# =========================================================
-
-with tab_json:
-    st.subheader("source_urls.json")
-
-    st.code(
-        read_file(SOURCE_URLS_PATH)
-        or "source_urls.json 없음",
-        language="json",
-    )
-
-    st.subheader("newsletters.json")
-
-    st.code(
-        read_file(NEWSLETTERS_PATH)
-        or "newsletters.json 없음",
-        language="json",
-    )
-
-    st.subheader("recipients.json")
-
-    st.code(
-        read_file(RECIPIENTS_PATH)
-        or "recipients.json 없음",
-        language="json",
-    )

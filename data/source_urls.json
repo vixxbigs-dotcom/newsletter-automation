@@ -1,15 +1,15 @@
 {
-  "newsletter_id": "culture-003",
+  "newsletter_id": "ai-ax-003",
   "issue": "HRD Trend Newsletter",
-  "category": "조직활성화 교육",
+  "category": "AI/AX 교육",
   "title": "새 뉴스레터 제목",
-  "date": "2026.07.21",
+  "date": "2026.07.28",
   "read_time": "5분 뉴스",
   "summary": "",
   "urls": [
-    "https://www.khrd.co.kr/news/view.php?idx=5057054&sm=w_total&stx=MZ%EC%84%B8%EB%8C%80&stx2=&w_section1=&sdate=&edate=",
-    "https://www.khrd.co.kr/news/view.php?idx=5056676&sm=w_total&stx=MZ%EC%84%B8%EB%8C%80&stx2=&w_section1=&sdate=&edate=",
-    "https://www.khrd.co.kr/news/view.php?idx=5057253&sm=w_total&stx=1on1&stx2=&w_section1=&sdate=&edate=",
-    "https://www.khrd.co.kr/news/view.php?idx=5056378&sm=w_total&stx=MZ%EC%84%B8%EB%8C%80&stx2=&w_section1=&sdate=&edate="
+    "https://www.khrd.co.kr/news/view.php?idx=5057375",
+    "https://www.khrd.co.kr/news/view.php?idx=5057309",
+    "https://www.khrd.co.kr/news/view.php?idx=5057392",
+    "https://www.khrd.co.kr/news/view.php?idx=5057149"
   ]
 }
