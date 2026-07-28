@@ -1,15 +1,15 @@
 {
-  "newsletter_id": "ai-ax-004",
+  "newsletter_id": "onboarding-003",
   "issue": "HRD Trend Newsletter",
-  "category": "AI/AX 교육",
+  "category": "신입사원 교육",
   "title": "새 뉴스레터 제목",
   "date": "2026.07.28",
   "read_time": "5분 뉴스",
   "summary": "",
   "urls": [
-    "https://www.khrd.co.kr/news/view.php?idx=5057391",
-    "https://www.khrd.co.kr/news/view.php?idx=5057364",
-    "https://www.khrd.co.kr/news/view.php?idx=5057277",
-    "https://www.khrd.co.kr/news/view.php?idx=5057255"
+    "https://www.khrd.co.kr/news/view.php?idx=5057303",
+    "https://www.khrd.co.kr/news/view.php?idx=5057251",
+    "https://www.khrd.co.kr/news/view.php?idx=5057101",
+    "https://www.khrd.co.kr/news/view.php?idx=5057009"
   ]
 }
